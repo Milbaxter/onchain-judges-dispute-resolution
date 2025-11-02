@@ -34,7 +34,7 @@ class OracleQuery(BaseModel):
         min_length=10,
         max_length=256,
         pattern=r'^[a-zA-Z0-9\s.,?!\-\'"":;()/@#$%&+=]+$',
-        description="The dispute question to resolve (alphanumeric and common punctuation only)",
+        description="Question to verify (should be answerable with YES/NO, alphanumeric and common punctuation only)",
     )
 
 

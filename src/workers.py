@@ -10,7 +10,7 @@ from huey import SqliteHuey, crontab
 from src.config import settings
 from src.job_store import job_store
 from src.models import JobStatus
-from src.oracle import oracle
+from src.oracle import get_oracle
 from src.signing import signing_service
 
 # Configure logging.
@@ -68,6 +68,8 @@ def process_oracle_query(job_id: str, query: str):
         # Update status to processing.
         job_store.update_job_status(job_id, JobStatus.PROCESSING)
 
+        # Lazily load the oracle to defer provider validation until a job runs.
+        oracle = get_oracle()
         # Run async oracle resolution via asyncio.run because Huey tasks are synchronous.
         result = asyncio.run(oracle.resolve_dispute(query))
 

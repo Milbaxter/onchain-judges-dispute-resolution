@@ -91,7 +91,7 @@ tags_metadata = [
     },
     {
         "name": "Public Feed",
-        "description": "Browse recent dispute resolutions submitted by the community.",
+        "description": "Browse recent fact verifications submitted by the community.",
     },
     {
         "name": "System",
@@ -129,7 +129,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Verisage",
     description=(
-        "Multi-LLM oracle for dispute resolution and fact verification. "
+        "Verifiable Multi-LLM Truth Oracle running on Oasis ROFL. "
+        "Trustless fact verification powered by multiple independent AI providers (Claude, Gemini, OpenAI). "
         "All responses are cryptographically signed inside the ROFL TEE using SECP256K1 keys. "
         "Public keys can be verified against on-chain attested state at https://github.com/ptrus/rofl-registry"
     ),
@@ -235,13 +236,21 @@ if not settings.debug_payments:
     # Create facilitator config for production (required for payment verification infrastructure).
     facilitator_config = None
     if settings.environment == "production":
-        from cdp.x402 import create_facilitator_config
+        if settings.facilitator_url:
+            # Use custom facilitator URL
+            from x402.facilitator import FacilitatorConfig
 
-        facilitator_config = create_facilitator_config(
-            api_key_id=settings.cdp_api_key_id,
-            api_key_secret=settings.cdp_api_key_secret,
-        )
-        logger.info("✓ CDP facilitator configured for production payment verification")
+            facilitator_config = FacilitatorConfig(url=settings.facilitator_url)
+            logger.info(f"✓ Using custom facilitator URL: {settings.facilitator_url}")
+        else:
+            # Use Coinbase CDP facilitator
+            from cdp.x402 import create_facilitator_config
+
+            facilitator_config = create_facilitator_config(
+                api_key_id=settings.cdp_api_key_id,
+                api_key_secret=settings.cdp_api_key_secret,
+            )
+            logger.info("✓ CDP facilitator configured for production payment verification")
 
     # Wrap payment middleware to skip OPTIONS requests for CORS.
     payment_middleware = require_payment(
@@ -249,7 +258,7 @@ if not settings.debug_payments:
         price=settings.x402_price,
         pay_to_address=settings.x402_payment_address,
         network=settings.x402_network,
-        description="Trustless Multi-LLM Dispute Oracle - Get consensus from multiple AI providers on any question. Verifiable/attested code running in Oasis Network ROFL TEE.",
+        description="Verifiable Multi-LLM Truth Oracle - Trustless fact verification powered by multiple independent AI providers (Claude, Gemini, OpenAI). Cryptographically signed responses from code running in Oasis ROFL TEE.",
         paywall_config=PaywallConfig(
             app_name="Verisage.xyz",
             app_logo="/static/logo.png",
@@ -259,12 +268,14 @@ if not settings.debug_payments:
             body_fields={
                 "query": {
                     "type": "string",
-                    "description": "The dispute question to resolve (10-256 characters, alphanumeric and common punctuation only)",
+                    "description": "Question to verify (should be answerable with YES/NO). Be specific with dates, names, and facts. Example: 'Did the Lakers win against the Warriors on October 22, 2025?'",
                     "minLength": 10,
                     "maxLength": 256,
                     "pattern": r'^[a-zA-Z0-9\s.,?!\-\'"":;()/@#$%&+=]+$',
                 }
             },
+            query_params={},
+            header_fields={},
         ),
         output_schema=JobResponse.model_json_schema(),
         facilitator_config=facilitator_config,
@@ -272,10 +283,12 @@ if not settings.debug_payments:
 
     @app.middleware("http")
     async def payment_with_cors(request: Request, call_next):
-        """Payment middleware that skips OPTIONS requests for CORS preflight."""
+        """Payment middleware that skips OPTIONS requests for CORS preflight and handles deferred job creation."""
         if request.method == "OPTIONS":
             return await call_next(request)
+
         response = await payment_middleware(request, call_next)
+
         # Ensure CORS headers are on 402 responses.
         if response.status_code == 402:
             origin = request.headers.get("origin")
@@ -285,6 +298,29 @@ if not settings.debug_payments:
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Allow-Methods"] = "*"
                 response.headers["Access-Control-Allow-Headers"] = "*"
+
+        # If payment settled successfully and there's a pending job creation, create it now.
+        # This ensures jobs are only created AFTER payment settlement succeeds.
+        if response.status_code >= 200 and response.status_code < 300:
+            if hasattr(request.state, "pending_job_creation"):
+                job_params = request.state.pending_job_creation
+                logger.info(
+                    f"Creating job {job_params['job_id']} after successful payment settlement"
+                )
+
+                # Create the job in the database with the pre-generated ID and timestamp.
+                job_store.create_job_with_id(
+                    job_id=job_params["job_id"],
+                    query=job_params["query"],
+                    payer_address=job_params["payer_address"],
+                    tx_hash=job_params["tx_hash"],
+                    network=job_params["network"],
+                    created_at=job_params["created_at"],
+                )
+
+                # Enqueue task for background processing.
+                process_oracle_query(job_params["job_id"], job_params["query"])
+
         return response
 
 
@@ -364,15 +400,34 @@ async def query_oracle(query: OracleQuery, request: Request) -> JobResponse:
         # If payment info extraction fails, continue without it.
         logger.warning(f"Failed to extract payment info: {e}", exc_info=True)
 
-    job_id, created_at = job_store.create_job(
-        query.query,
-        payer_address=payer_address,
-        tx_hash=tx_hash,
-        network=network,
-    )
+    # If payment is required, defer job creation until after settlement.
+    # This prevents creating jobs when settlement fails.
+    if not settings.debug_payments:
+        # Generate job_id and timestamp now for the response.
+        import uuid
 
-    # Enqueue task for background processing.
-    process_oracle_query(job_id, query.query)
+        job_id = str(uuid.uuid4())
+        created_at = datetime.now(UTC)
+
+        # Store job creation parameters in request state for middleware to process after settlement.
+        request.state.pending_job_creation = {
+            "job_id": job_id,
+            "query": query.query,
+            "payer_address": payer_address,
+            "tx_hash": tx_hash,
+            "network": network,
+            "created_at": created_at,
+        }
+    else:
+        # In debug mode, create job immediately (no payment required).
+        job_id, created_at = job_store.create_job(
+            query.query,
+            payer_address=payer_address,
+            tx_hash=tx_hash,
+            network=network,
+        )
+        # Enqueue task for background processing.
+        process_oracle_query(job_id, query.query)
 
     return JobResponse(
         job_id=job_id,

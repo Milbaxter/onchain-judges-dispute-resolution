@@ -35,35 +35,37 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - id: tjgD7eH8D9VylRMoRgdswguKkSnWYPeSnSWF/hqgDAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - id: 6iYmX4LdcAhEYIh+P3PwzKm8E1iO4TFzMGcEqkNa1PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: MaaBMxt/SYNl0yzS0qfRadrKX1Acwj3rYfMHv3mx0v4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: GZvts2cR1xy46bVHfkVD3HQ40KLz+vLrDs0FmgrF70QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
-        - any: {}
+        - provider_instance_admin: oasis1qrn8z5keqycq2xc8v7yra5qr2wnsqzmxpulfstt6
       fees: endorsing_node
       max_expiration: 3
     secrets:
       - name: CDP_API_KEY_ID
-        value: pGJwa1ggF+MIo91qNGtAgJlXR5PCoGp+9v4/Sky0P6J1GQjNXA9kbmFtZVgeDw0ADCMR44j3bVHj3yXO4jfnXbf9mN2ho2DwN0xCZW5vbmNlT6Evc3LIap0SI5LB7V99qGV2YWx1ZVg0/EtKPhMlnNY687SbCn7NqARLx07l4rYAKSIl9qnQGA1iZMKutLOBumi43PinfzfxFZBe+A==
+        value: pGJwa1ggrKY8MSrkAXQCfeSgwblC/kvKnsmMdVUdAqzzBqUJajlkbmFtZVgesL0dEvsz/mZA6YS8Wk0+OcCsD3pXzMFM65Ai8CVjZW5vbmNlT54ZdKXERF7yfX9iR/UKmGV2YWx1ZVC2K+y2QPVNy5DMkf3AnBAT
       - name: CDP_API_KEY_SECRET
-        value: pGJwa1ggVxsJlSaooTWBwAvc2w6cwm+E4AQCBtnTRnClrhy+7A5kbmFtZVgiTIt+NtUtC2VpU9/71nsIfFmGbNlFCcl4uGQOtV/0+6UJrWVub25jZU8Mq6zWb+x5pJ0pnZPEMItldmFsdWVYaEAdDV6mA/CuNFqzEFUX8OauKZk3Q0ONhbNi1036d6wsf1fp08zSqrvNwwz8h1/qC84yYXhf/GoGWsnLfkN0sv8frLpxlIVxa1uxNoDlVYi6vnc4XYTH6/gv66AhEucD0PjqcRaADbL9
+        value: pGJwa1ggnvp96s+RvIflA4bFkHWeNoSID48V+Z+xuoRAdwAjqXhkbmFtZVgij+NhJ+jQP75GE5T4td4fNY9mr7j3Rce0KjHTzZCB+B3HsWVub25jZU/t53AW2poXUByYcvPBBX5ldmFsdWVQiILfq4vzwsRq/PXbdypcVQ==
       - name: CLAUDE_API_KEY
-        value: pGJwa1ggYpmYusOKm+DHbDNFI/v1OEoadYZ30U6cg4Esog76rmRkbmFtZVgeAD3HSObBEeSh3TG9BnUDvJAl0Cg1Vx0nqRBIo5kIZW5vbmNlT+BBV66rUxnqPiNCGcKtbmV2YWx1ZVh8MV24aV6LkocOTei5MTB4k9yNa6qZPd3eI6D0n9X69ihVJ3HRnXo6p+PwJjptITRX8epCDAMh/AMpvFWJ99VCoPtkJlSpD5jAvAQg1lHPbjkHfqpir6nFkymHoZJo3EoRnACYLV8R5fPT53nicNMpImUgjthuV3i9p6Dcbg==
+        value: pGJwa1ggYQDzDBliBoi7x1AtldCUNOHA2DUkYS2VGOoYkO2qUGJkbmFtZVgehkaDfVdVkINxZ/ggPbTJrrsmXDCrLu5+nW6r0L5jZW5vbmNlT8stk8f6Aj/hdPoof15YpmV2YWx1ZVh86zu7Jk4m4Psme6rDWa00O0lqmFcYfLkBG0g18dXwXD1hdKkdNCo+qUyyGvI1CPbMnDkLkYp39IJOnJuZclf43oVT6WOAp9SgdvmcGcSYeRHPDWOGelxbjsBKMelMkYqtHZHz7mxF4T7krohWSKswn/NhFXvgBlTEBsZU6A==
       - name: CORS_ORIGINS
-        value: pGJwa1gg5AjNv3Y0peejTqkw9qAzDSlL/z1xs5mQZhiMrkeamXZkbmFtZVgc9DsnnFrabTsChTi6gJZt0Huf5tJdImibwwpd7GVub25jZU8KbHtYPEKYlTFjyuuChb5ldmFsdWVYJIETWzGDdVVhh9WCDsri2IHZjiVPQddlKDrKSPiginK5H/XeRQ==
+        value: pGJwa1ggbbGL4GkZGkEXp+iY3LIDf8kVF19iVUXtSN0g4G63l0VkbmFtZVgc2PHNnLGzIp7Rpp8CDEGgLd1iJG0wiUckcyHws2Vub25jZU+GLJiZ0i5I1FfDMPwBSJxldmFsdWVYJEWKjSpoMLzq1G4stPxudzvDzQzgu92u8Ju+Qk1ge56BycOYsw==
       - name: ENVIRONMENT
-        value: pGJwa1ggJiF47d/5+WhXxX45YNO0D0ofGbL8PVz4QVZhgidL739kbmFtZVgbgVh2CFsWnJMjqcG7XYtb6TTwjXKShMiCVGgVZW5vbmNlTyqzm+dVPVvXd06JCAajr2V2YWx1ZVgagVAmk8SJ+2h6IMrnNx1Wp6S4iONiE8Znow4=
+        value: pGJwa1gg6+1AGQGdBjgmJK3WoI0TGU2orebdrZFNJTKV5BsKtjpkbmFtZVgb7kIfV8elNCnT+Tob2frLieTPHes9YNScWQjCZW5vbmNlT3Mp5ziNCsEbFFm1s1/LB2V2YWx1ZVgaLGUcglp8vLNWAgc3ymqtJe6Fc9aEhtKwnYk=
       - name: GEMINI_API_KEY
-        value: pGJwa1ggajYQSKDoRjNqBWJ5c2AO3wsD1UicAjN/pHXJdGn3MERkbmFtZVge6lhphKkKKv0YbOAJ0YUGk9mkiIKhIz6/+0bhABAKZW5vbmNlTz5R/Q7WKJh1BVxAPNa01GV2YWx1ZVg3uXY1SAJ4HPytewxkX22tUMWjwA1n6D4MaMEeC3lz2zrW1mMWGIGbmItmqzLt8MAib8E7j7YAbQ==
+        value: pGJwa1ggdZlml/+v5KJFKxR7p3Ls47MJkps96s4vqB0yGr939CpkbmFtZVgeSmqnrLUD/5O5xzIUZrzW+B/pXytl6U1um4DAh1VvZW5vbmNlTzLjArjGDliaEczXqxrycGV2YWx1ZVg3ham/Lsz4DcXGYgea4HDn7aCyoM2r/coh+fhAcOXyI1hFJWBGiBLtwBE1U7Uoz88DjpyDqy/oaA==
       - name: OPENAI_API_KEY
-        value: pGJwa1gg+Z2mwAULG92ksxLa8poY8X6HQ9si6dmvN112BevlcT1kbmFtZVgey7TVG8kd4DE874KRy6+1cz9oybwPVMZLaycENz+mZW5vbmNlT+8jGxXLND0Mru356ZTad2V2YWx1ZVi0LaWczfhPbHocNFZ5ULFEFW2PS6T/VzGrJ7KWGAQvQKGUGkgboEqvU/coa0nxZxcjpn1k3Xrcm+LcR0GiMJxwKyBfCHEnS+VTLAFCxxwiBfT9yDaG9NmU3G/2ySf4ZGJOGh/VZ5fACFJAbgvPaO0CDZmbKL636dQ53JJi+OzHVKdN5/F7j4DkAEPYlTQAuKUGsD8DY4RT+lXaUafsIBoYcuNRi2BESIgEoYX6hW0eStypwZOv
+        value: pGJwa1ggfFm9vGa9eHfJPj1Sup4gxzB3Yuyz7VIcP5/Om3uslSZkbmFtZVgeLzX5+Q8/UtthYX+tvxfv65FoUcCHcykwEZOS5p13ZW5vbmNlTxTR9RMttywut0EqFG7ZMmV2YWx1ZVi0DyjIeYyGyhbcH8P6HTdo9xKe1YcgqEkcVzFY2nTF+uys4Juq1lGPcq4LLrRhkdPRT8vown4aA4D3Qk5mqnz2Dd4oE+55iLHgEaXPEPFF34cfLy296bGs9DgnrbrpLunhE0oXk9j6LYh6RI9gxVkYv8Nd25ZMPboC5iH+lW1qlAvNngJFO4tcPL3eYrBZ4wvyEec75SrFiy3rLujVFhL3trTUb8XZuBgJ0YyHRe6ovtuBT+XV
       - name: X402_NETWORK
-        value: pGJwa1ggNG4HMN8XJZGrMWOZgNuxxzoPea+sNXLd9f8NaeyzVw9kbmFtZVgc/27lDyTSTpulhupyihLaKnd7FE9KHcMXUFAnJmVub25jZU8CIhi9hUsgItU/3jEoRKtldmFsdWVUAPN7Alg1jf7jTcVze5pUO1Fchmo=
+        value: pGJwa1ggCHgPz+pDAwvzmRaNSANU6+5LNrappcW9Yn4YcRI+jWZkbmFtZVgcAOMU5GbA/5TyZzw8pSYa7xxKF6eV1qEyEBHleGVub25jZU/fHaGCIbfne+bTrKDkO9pldmFsdWVUkDV8NF5CuwDFJSP8Ajh4K0M90+0=
       - name: X402_PAYMENT_ADDRESS
-        value: pGJwa1ggDchy/9S5D8rIZNdvgvPpT5zXq8xcJp1hiO0+Ts2wlR9kbmFtZVgkY9xeSIZJuPZlMGf2cCgxwboi1/OPS/lKXJ12iExFj87Tk+n+ZW5vbmNlT0p6E50i3IK/c+lSghrdI2V2YWx1ZVg6YJxMfWMbW06YBCpRiARt39REyhW+iPAafv2pE9A09+Ae8RcdkeRNFUoIwjI5nr6ig1HIIx6Pak6xxQ==
+        value: pGJwa1gg5QW3tkooH1GP0nyhJtSdPA/eLP/k34N6dcnBm3fIXzJkbmFtZVgkPaoP3lsiqwAPDyZQv50wnDzm2hhxTJAitYeKanqzeeXQl3HMZW5vbmNlT0iMPpgjSy32lXMeMo7kxGV2YWx1ZVg6/gbPiNWKwtXw5gRYEiiyP2msiQcY+cgEpee/CqF4fGZQCucjLqEscFchAOGKaySfVlduoBV9JbxCiw==
       - name: X402_PRICE
-        value: pGJwa1ggYznui2TNO95M6GZ+3LZnyXKoqo/LNx19zknTy3PgaRRkbmFtZVga+vMYdovKW7TB/ZR5lT8YXCPCiWzbNNhAsYhlbm9uY2VPzE2GxVwJcZNjuQk0jsRWZXZhbHVlVJfchwesbe+GAt7KuHobjZwS8AVi
+        value: pGJwa1ggMi2OadHDlletNrPWvzPiAW0FB3tEKT4ITlh8J1o2EERkbmFtZVgaB0JpyBf/mY2UCICECleV9Gjc453wtjSGgD5lbm9uY2VPkT2eWUoqwBTG6h3z6QxHZXZhbHVlVGXY4+9c/f77nBExtjTLwFQUH3u/
       - name: PERPLEXITY_API_KEY
-        value: pGJwa1ggKQTcRggMGga5txXlFpEwWwDWEcRTROIjAh5o/Igc6QhkbmFtZVgis1v2zRKujqx3LtAlw6o1Yr09GMQO14Gm+3blERtuBeUxqmVub25jZU+IfdjjV74BoDZlG9p/5ZFldmFsdWVQL0x0FJurVXg/Za6odTqWoQ==
+        value: pGJwa1ggHJtx6GqcmJS+zZB2an/6DHkcoCJE2rgAueALk6EROFlkbmFtZVgiS0qPIlizUZH4l6+7UwikYPO6X2Df7FHhGScDsQrcHSRy/2Vub25jZU8jwuiStOSUMmZrV45p6FJldmFsdWVQa5VbpS9xzaxWe8r7JnHyJQ==
+      - name: FACILITATOR_URL
+        value: pGJwa1gg5HhdluvUnTes/zQIUUqmsTkCttJHCzasevfTTn+X4DNkbmFtZVgfLBNhX+PnkYzVh89E8A5+cgi455Jt2k9WyxBmvt0422Vub25jZU8VLExvKvg9/a5k0SFD0GZldmFsdWVYMYdGUvBLXu50XveDqXq/+FRX9e+HYZONqTG8LDUsJFFGY1fZx9+AE9YDPG1Bpaiq6v4=
     machines:
       default:
         provider: oasis1qzc8pldvm8vm3duvdrj63wgvkw34y9ucfcxzetqr

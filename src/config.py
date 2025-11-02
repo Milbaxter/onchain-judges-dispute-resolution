@@ -7,6 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    # Process type (server or worker) - used for validation.
+    process_type: str | None = None  # "server" or "worker", None means both (for tests).
+
     # Environment (development or production).
     environment: str = "development"
 
@@ -41,6 +44,7 @@ class Settings(BaseSettings):
     # CDP API Keys for x402 payment facilitator (required in production).
     cdp_api_key_id: str | None = None
     cdp_api_key_secret: str | None = None
+    facilitator_url: str = ""  # Custom facilitator URL (empty = use Coinbase default)
 
     # CORS configuration (comma-separated origins).
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
@@ -61,7 +65,11 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_settings(self):
         """Ensure production environment has secure settings."""
+        is_server = self.process_type in ("server", None)  # None for backward compatibility.
+        is_worker = self.process_type in ("worker", None)
+
         if self.environment == "production":
+            # These checks apply to ALL processes.
             if self.debug_payments:
                 raise ValueError(
                     "CRITICAL: Cannot run with DEBUG_PAYMENTS=true in production! "
@@ -77,15 +85,39 @@ class Settings(BaseSettings):
                     "CRITICAL: Cannot run with DEBUG_SIGNING=true in production! "
                     "Set DEBUG_SIGNING=false or ENVIRONMENT=development"
                 )
-            if not self.x402_payment_address:
+
+            # Server-only requirements (payment processing).
+            if is_server:
+                if not self.x402_payment_address:
+                    raise ValueError(
+                        "CRITICAL: X402_PAYMENT_ADDRESS is required for server in ENVIRONMENT=production"
+                    )
+                # CDP keys are only required if not using a custom facilitator URL
+                if not self.facilitator_url and (
+                    not self.cdp_api_key_id or not self.cdp_api_key_secret
+                ):
+                    raise ValueError(
+                        "CRITICAL: CDP_API_KEY_ID and CDP_API_KEY_SECRET are required for server in ENVIRONMENT=production "
+                        "(needed for x402 payment facilitator), or set FACILITATOR_URL to use a custom facilitator"
+                    )
+
+        # Worker-only requirements (LLM API access) - applies in both dev and prod.
+        if is_worker and not self.debug_mock:
+            # At least one API key must be provided.
+            has_any_key = any(
+                [
+                    self.claude_api_key,
+                    self.gemini_api_key,
+                    self.openai_api_key,
+                    self.perplexity_api_key,
+                ]
+            )
+            if not has_any_key:
                 raise ValueError(
-                    "CRITICAL: X402_PAYMENT_ADDRESS is required when ENVIRONMENT=production"
+                    "CRITICAL: At least one LLM API key is required for worker when DEBUG_MOCK=false. "
+                    "Set CLAUDE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or PERPLEXITY_API_KEY"
                 )
-            if not self.cdp_api_key_id or not self.cdp_api_key_secret:
-                raise ValueError(
-                    "CRITICAL: CDP_API_KEY_ID and CDP_API_KEY_SECRET are required when ENVIRONMENT=production "
-                    "(needed for x402 payment facilitator)"
-                )
+
         return self
 
     def get_cors_origins(self) -> list[str]:

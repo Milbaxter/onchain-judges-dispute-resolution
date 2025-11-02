@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set process type for validation.
+export PROCESS_TYPE=server
+
 # Get uvicorn worker count from environment variable (default: 8).
 UVICORN_WORKERS=${UVICORN_WORKERS:-8}
 

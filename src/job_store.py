@@ -115,6 +115,46 @@ class JobStore:
 
         return job_id, created_at
 
+    def create_job_with_id(
+        self,
+        job_id: str,
+        query: str,
+        created_at: datetime,
+        payer_address: str | None = None,
+        tx_hash: str | None = None,
+        network: str | None = None,
+    ) -> None:
+        """Create a new job entry with a pre-generated ID and timestamp.
+
+        This method is used when the job_id and created_at timestamp are generated
+        earlier (e.g., before payment settlement) to ensure the response includes
+        the correct identifiers even if the job isn't created until later.
+
+        Args:
+            job_id: Pre-generated UUID for the job
+            query: The oracle query to process
+            created_at: Pre-generated creation timestamp
+            payer_address: Address of the payer (if payment was made)
+            tx_hash: Transaction hash of the payment
+            network: Network the payment was made on
+        """
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO jobs (id, status, query, created_at, payer_address, tx_hash, network)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    job_id,
+                    JobStatus.PENDING.value,
+                    query,
+                    created_at.isoformat(),
+                    payer_address,
+                    tx_hash,
+                    network,
+                ),
+            )
+
     def get_job(self, job_id: str) -> dict | None:
         """Get job details by ID.
 

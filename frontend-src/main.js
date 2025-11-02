@@ -635,8 +635,8 @@ function fetchRecentResolutions() {
         }
       }
 
-      // Add new jobs with slide-in animation.
-      newJobs.forEach((job) => {
+      // Add new jobs with slide-in animation (reverse to maintain DESC order).
+      newJobs.reverse().forEach((job) => {
         recentJobIds.add(job.job_id);
         const html = createCollapsedResult(job);
         container.insertAdjacentHTML('afterbegin', html);
@@ -817,10 +817,19 @@ async function checkServiceHealth() {
         submitButton.disabled = false;
       }
     }
-  } catch {
-    // On error, assume healthy to not block users unnecessarily.
+  } catch (error) {
+    console.warn('Health check failed:', error);
+    // Show a degraded state warning but still allow submissions.
     isServiceHealthy = true;
-    healthBanner.className = 'health-banner';
+    healthBanner.className = 'health-banner degraded';
+    healthTitle.textContent = 'Unable to Check Service Status';
+    healthMessage.textContent =
+      'Cannot connect to health monitoring. The service may be down or experiencing issues.';
+
+    // Re-enable submit button if wallet is connected.
+    if (submitButton && fetchWithPay) {
+      submitButton.disabled = false;
+    }
   }
 }
 

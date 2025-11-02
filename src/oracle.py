@@ -1,6 +1,7 @@
 """Oracle orchestrator for multi-LLM dispute resolution."""
 
 import asyncio
+from typing import Optional
 
 from src.config import settings
 from src.llm_clients.claude import ClaudeClient
@@ -156,5 +157,14 @@ class Oracle:
         return response
 
 
-# Global oracle instance.
-oracle = Oracle()
+# Lazily instantiated oracle. Imported modules call get_oracle() to avoid
+# validation on module import when running the API server.
+_oracle_instance: Optional["Oracle"] = None
+
+
+def get_oracle() -> Oracle:
+    """Return a shared Oracle instance, creating it on first use."""
+    global _oracle_instance
+    if _oracle_instance is None:
+        _oracle_instance = Oracle()
+    return _oracle_instance

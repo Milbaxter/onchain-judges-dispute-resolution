@@ -55,8 +55,14 @@ class SigningService:
 
             # Upload public key to metadata.
             logger.info("Updating ROFL metadata...")
-            await self.rofl_client.set_metadata({"signing_public_key": self.public_key_hex})
-            logger.info("Metadata updated")
+            try:
+                await self.rofl_client.set_metadata({"signing_public_key": self.public_key_hex})
+            except json.JSONDecodeError:
+                # set_metadata returns 200 OK with empty body, which causes JSON decode error
+                # This is expected - treat as success
+                logger.info("Metadata updated (empty response)")
+            else:
+                logger.info("Metadata updated")
 
             logger.info("ROFL signing service initialized successfully")
 

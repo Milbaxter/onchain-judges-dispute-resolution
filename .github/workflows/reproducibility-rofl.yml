@@ -7,7 +7,7 @@ on:
     inputs:
       git_ref:
         description: "Branch or tag to verify"
-        default: "main"
+        default: "master"
         required: true
       deployment:
         description: "ROFL deployment to verify"
@@ -31,6 +31,9 @@ jobs:
 
       - name: Setup Oasis CLI
         uses: oasisprotocol/setup-cli-action@0.0.2
+
+      - name: Install qemu-utils
+        run: sudo apt-get update && sudo apt-get install -y qemu-utils
 
       - name: Build and Verify ROFL Enclave IDs match on-chain state
         run: oasis rofl build --deployment "${ROFL_DEPLOYMENT}" --verify

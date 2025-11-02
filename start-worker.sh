@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set process type for validation.
+export PROCESS_TYPE=worker
+
 # Get worker count from environment variable (default: 8).
 WORKER_COUNT=${WORKER_COUNT:-8}
 
