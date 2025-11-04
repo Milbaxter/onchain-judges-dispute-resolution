@@ -130,18 +130,35 @@ USER INPUT (UNTRUSTED):
 
         def _clean_json_text(text: str) -> str:
             stripped = text.strip()
-            if stripped.startswith("```"):
-                lines = stripped.splitlines()
-                # Drop first fence line.
-                lines = lines[1:]
-                # Drop trailing fence if present.
-                if lines and lines[-1].strip().startswith("```"):
-                    lines = lines[:-1]
-                stripped = "\n".join(lines).strip()
+
+            # Check if there's a code fence anywhere in the text (not just at start)
+            if "```" in stripped:
+                # Split by ``` to handle cases where fence appears mid-line
+                fence_parts = stripped.split("```")
+
+                # If we have at least 2 parts, we have at least one opening fence
+                if len(fence_parts) >= 2:
+                    # The second part (fence_parts[1]) contains what's after the first ```
+                    # Strip "json" or other language identifiers from the start
+                    content_after_fence = fence_parts[1]
+
+                    # Remove language identifier like "json" if present at start
+                    if content_after_fence.lstrip().startswith(("json", "JSON")):
+                        content_after_fence = content_after_fence.lstrip()[4:]
+
+                    # If there's a closing fence (3+ parts), take only up to it
+                    if len(fence_parts) >= 3:
+                        stripped = content_after_fence.split("```")[0].strip()
+                    else:
+                        # No closing fence, take everything after opening
+                        stripped = content_after_fence.strip()
+
             return stripped
 
+        json_parsed = False
         try:
             parsed = json.loads(_clean_json_text(raw_response))
+            json_parsed = True
 
             raw_decision = str(parsed.get("decision", "")).strip().lower()
             if raw_decision in {
@@ -160,7 +177,13 @@ USER INPUT (UNTRUSTED):
                 confidence = 0.5
 
             reasoning_value = parsed.get("reasoning")
-            reasoning = str(reasoning_value).strip() if reasoning_value else ""
+            if reasoning_value is None:
+                reasoning = ""
+            else:
+                reasoning = str(reasoning_value).strip()
+                # If reasoning is only whitespace, convert to empty string
+                if not reasoning:
+                    reasoning = ""
         except (json.JSONDecodeError, TypeError):
             # Fallback to legacy parsing heuristics.
             lines = raw_response.split("\n")
@@ -189,7 +212,8 @@ USER INPUT (UNTRUSTED):
                         reasoning += "\n" + "\n".join(lines[i + 1 :])
                     break
 
-        if not reasoning:
+        # Only use raw_response as fallback if we couldn't parse JSON and have no reasoning
+        if not json_parsed and not reasoning:
             reasoning = raw_response
 
         return decision, confidence, reasoning
