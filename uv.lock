@@ -3,6 +3,22 @@ revision = 3
 requires-python = ">=3.11"
 
 [[package]]
+name = "agent0-sdk"
+version = "0.2.1"
+source = { git = "https://github.com/ptrus/agent0-py.git?rev=ptrus%2Ffix%2Findexer-deps-group#86c10249ff2ee20afcf629ea9a53035cc3f28628" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "asyncio-throttle" },
+    { name = "eth-account" },
+    { name = "ipfshttpclient" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+    { name = "web3" },
+]
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -150,6 +166,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c6/78/7d432127c41b50bccba979505f272c16cbcadcc33645d5fa3a738110ae75/anyio-4.11.0.tar.gz", hash = "sha256:82a8d0b81e318cc5ce71a5f1f8b5c4e63619620b63141ef8c995fa0db95a57c4", size = 219094, upload-time = "2025-09-23T09:19:12.58Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/15/b3/9b1a8074496371342ec1e796a96f99c82c945a339cd81a8e73de28b4cf9e/anyio-4.11.0-py3-none-any.whl", hash = "sha256:0287e96f4d26d4149305414d4e3bc32f0dcd0862365a4bddea19d7a1ec38c4fc", size = 109097, upload-time = "2025-09-23T09:19:10.601Z" },
+]
+
+[[package]]
+name = "asyncio-throttle"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/6f/0e2d42c0e95d50edf63147b8a742703061945e02760f25d6a0e8f028ccb0/asyncio-throttle-1.0.2.tar.gz", hash = "sha256:2675282e99d9129ecc446f917e174bc205c65e36c602aa18603b4948567fcbd4", size = 3775, upload-time = "2021-04-07T13:37:50.114Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/6a/d18c93722fb56dc1ffed5fb7e7fcff4f8031f80f84c5cc0427363a036b0c/asyncio_throttle-1.0.2-py3-none-any.whl", hash = "sha256:4d4c1eb3250f735f59ce842d8d92cd2927c008bd52008797ba030b5787c41f3b", size = 4079, upload-time = "2021-04-07T13:37:48.63Z" },
 ]
 
 [[package]]
@@ -1258,6 +1283,19 @@ wheels = [
 ]
 
 [[package]]
+name = "ipfshttpclient"
+version = "0.8.0a2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "multiaddr" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/82/06/afdf32558638f873ae1b63803729bb0fb15a8b6c805aed995c49b28db2e8/ipfshttpclient-0.8.0a2.tar.gz", hash = "sha256:0d80e95ee60b02c7d414e79bf81a36fc3c8fbab74265475c52f70b2620812135", size = 113509, upload-time = "2021-05-30T18:06:03.884Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/ba/053527fbf8b3d75df19c8a6309f1f839c8ee721e4e36cfd966a0c83f6394/ipfshttpclient-0.8.0a2-py3-none-any.whl", hash = "sha256:ce6bac0e3963c4ced74d7eb6978125362bb05bbe219088ca48f369ce14d3cc39", size = 82564, upload-time = "2021-05-30T18:01:09.001Z" },
+]
+
+[[package]]
 name = "itsdangerous"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1482,6 +1520,21 @@ wheels = [
 ]
 
 [[package]]
+name = "multiaddr"
+version = "0.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "base58" },
+    { name = "netaddr" },
+    { name = "six" },
+    { name = "varint" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/f4/fa5353022ad8e0fd364bfa8b474f9562c36ce1305fad31fe52b849e30795/multiaddr-0.0.9.tar.gz", hash = "sha256:30b2695189edc3d5b90f1c303abb8f02d963a3a4edf2e7178b975eb417ab0ecf", size = 24726, upload-time = "2019-12-23T07:06:21.146Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/59/df732566d951c33f00a4022fc5bf9c5d1661b1c2cdaf56e75a1a5fa8f829/multiaddr-0.0.9-py2.py3-none-any.whl", hash = "sha256:5c0f862cbcf19aada2a899f80ef896ddb2e85614e0c8f04dd287c06c69dac95b", size = 16281, upload-time = "2019-12-23T07:06:18.915Z" },
+]
+
+[[package]]
 name = "multidict"
 version = "6.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1608,15 +1661,24 @@ wheels = [
 ]
 
 [[package]]
+name = "netaddr"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/90/188b2a69654f27b221fba92fda7217778208532c962509e959a9cee5229d/netaddr-1.3.0.tar.gz", hash = "sha256:5c3c3d9895b551b763779ba7db7a03487dc1f8e3b385af819af341ae9ef6e48a", size = 2260504, upload-time = "2024-05-28T21:30:37.743Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/cc/f4fe2c7ce68b92cbf5b2d379ca366e1edae38cccaad00f69f529b460c3ef/netaddr-1.3.0-py3-none-any.whl", hash = "sha256:c2c6a8ebe5554ce33b7d5b3a306b71bbb373e000bbbf2350dd5213cc56e3dbbe", size = 2262023, upload-time = "2024-05-28T21:30:34.191Z" },
+]
+
+[[package]]
 name = "oasis-rofl-client"
-version = "0.1.5"
+version = "0.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/ab/2fbc4c20e293dce9e89c20b9b784ac930ec954dfcfdbfefc3a7a00fd10b1/oasis_rofl_client-0.1.5.tar.gz", hash = "sha256:acfd5183f8c1c4877741582827469c3ef62f80ca32811201dbe6e50bbab6840a", size = 18385, upload-time = "2025-11-01T14:11:29.703Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/bb/54914de7f366c71095633e7c32f6ae8348aea5e51bb256ae2efb01d20e26/oasis_rofl_client-0.1.6.tar.gz", hash = "sha256:28509417ba26262bee9809a0ddcbd9019e0da0f5699dda7bd39f9ce08ed8094f", size = 18417, upload-time = "2025-11-06T14:19:05.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/2a/87664f622cfad5b39d84976af3519ce89ba446ab83c1c215d7911cf2162b/oasis_rofl_client-0.1.5-py3-none-any.whl", hash = "sha256:bcee8f7afd02dcdba43f90ec414ff9f1fc0ef7e8068ddd61db175541d0d21f65", size = 5208, upload-time = "2025-11-01T14:11:28.616Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/d6/f07a11d7b92cc32dda8a4c16fd415e953c55539f946a528aae3bd32025a5/oasis_rofl_client-0.1.6-py3-none-any.whl", hash = "sha256:e9fa06a4a9812cd8b0c5c19fa7ffb669a9b85af759feec42de3764b329065858", size = 5226, upload-time = "2025-11-06T14:19:04.588Z" },
 ]
 
 [[package]]
@@ -2643,10 +2705,17 @@ wheels = [
 ]
 
 [[package]]
+name = "varint"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/fe/1ea0ba0896dfa47186692655b86db3214c4b7c9e0e76c7b1dc257d101ab1/varint-1.0.2.tar.gz", hash = "sha256:a6ecc02377ac5ee9d65a6a8ad45c9ff1dac8ccee19400a5950fb51d594214ca5", size = 1886, upload-time = "2016-02-24T20:42:38.5Z" }
+
+[[package]]
 name = "verisage"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "agent0-sdk" },
     { name = "anthropic" },
     { name = "cdp-sdk" },
     { name = "coincurve" },
@@ -2675,6 +2744,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agent0-sdk", git = "https://github.com/ptrus/agent0-py.git?rev=ptrus%2Ffix%2Findexer-deps-group" },
     { name = "anthropic", specifier = ">=0.39.0" },
     { name = "cdp-sdk", specifier = ">=0.21.0" },
     { name = "coincurve", specifier = ">=20.0.0" },
@@ -2683,7 +2753,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "huey", specifier = ">=2.5.0" },
     { name = "jinja2", specifier = ">=3.1.4" },
-    { name = "oasis-rofl-client", specifier = ">=0.1.5" },
+    { name = "oasis-rofl-client", specifier = ">=0.1.6" },
     { name = "openai", specifier = ">=1.54.0" },
     { name = "perplexityai", specifier = ">=0.19.1" },
     { name = "pydantic", specifier = ">=2.9.0" },

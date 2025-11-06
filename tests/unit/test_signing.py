@@ -50,11 +50,14 @@ async def test_initialize_production_mode(mock_private_key):
     # Mock RoflClient.
     mock_client = MagicMock()
     mock_client.generate_key = AsyncMock(return_value=mock_private_key)
-    mock_client.set_metadata = AsyncMock()
+
+    # Mock job_store.
+    mock_job_store = MagicMock()
 
     with (
         patch("src.signing.settings") as mock_settings,
         patch("oasis_rofl_client.RoflClient", return_value=mock_client),
+        patch("src.job_store.job_store", mock_job_store),
     ):
         mock_settings.debug_signing = False
         mock_settings.environment = "production"
@@ -66,10 +69,10 @@ async def test_initialize_production_mode(mock_private_key):
         call_args = mock_client.generate_key.call_args
         assert call_args[0][0] == "verisage-oracle-key-v1"
 
-        # Verify metadata was set with public key.
-        mock_client.set_metadata.assert_called_once()
-        metadata = mock_client.set_metadata.call_args[0][0]
-        assert "signing_public_key" in metadata
+        # Verify public key was stored in database.
+        mock_job_store.set_metadata_key.assert_called_once()
+        call_args = mock_job_store.set_metadata_key.call_args
+        assert call_args[0][0] == "signing_public_key"
         assert service.public_key_hex is not None
 
 

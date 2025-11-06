@@ -19,7 +19,7 @@ RUN rm -f /etc/apt/sources.list.d/* && \
     echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT} ${DEBIAN_DIST}-security main" >> /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10no-check-valid-until && \
     apt-get update && \
-    apt-get install -y --no-install-recommends gcc libc6-dev && \
+    apt-get install -y --no-install-recommends gcc libc6-dev git && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv for Python package management.

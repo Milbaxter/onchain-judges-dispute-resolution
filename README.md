@@ -3,11 +3,11 @@
 [![Docker Reproducibility](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-docker.yml/badge.svg)](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-docker.yml)
 [![ROFL Reproducibility](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-rofl.yml/badge.svg)](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-rofl.yml)
 
-**Verifiable Multi-LLM Oracle for Truth Verification**
+**Trustless Multi-LLM Oracle for Truth Verification**
 
 Verisage answers objective yes/no questions by querying multiple independent AI providers (Claude, Gemini, Perplexity, OpenAI) and aggregating their responses with weighted voting. Designed as a trustless resolution mechanism for protocols requiring factual verification - an AI-powered alternative to human-based dispute systems like UMA.
 
-Built for deployment on [Oasis ROFL](https://docs.oasis.io/rofl/), the service will provide cryptographic attestation that proves the exact code executing in the TEE.
+Running on [Oasis ROFL](https://docs.oasis.io/rofl/), the service provides cryptographic attestation that proves the exact code executing in the TEE - no trust in operators required, only cryptographic verification.
 
 > **Note:** While Verisage provides verifiable execution and consensus across multiple AI models, the underlying LLMs are not perfect and can still make mistakes or produce incorrect answers. Always verify critical information from authoritative sources.
 
@@ -42,17 +42,17 @@ Built for deployment on [Oasis ROFL](https://docs.oasis.io/rofl/), the service w
 
 ## Why ROFL
 
-Protocols using oracles for resolution (like prediction markets, insurance, derivatives) need trustless verification. ROFL provides this:
+Protocols using oracles for resolution (like prediction markets, insurance, derivatives) require trustless verification without relying on operators. ROFL provides cryptographic guarantees:
 
-- **Remote attestation** – cryptographically proves the exact Docker image running in the TEE
-- **Verifiable execution** – anyone can confirm the exact code running matches this repository
-- **Tamper-proof execution** – operators cannot modify code or manipulate results
+- **Remote attestation** – Cryptographically proves the exact Docker image running in the TEE
+- **Verifiable execution** – Anyone can independently verify the exact code running matches this repository
+- **Tamper-proof execution** – Hardware-enforced guarantees that operators cannot modify code or manipulate results
 
 ---
 
-## How Can I Trust This Service?
+## How to Verify the Service
 
-Verisage is designed for complete verifiability. You don't need to trust the operators - you can verify everything yourself:
+Verisage is designed to be **trustless** - you don't need to trust anyone. Instead, you can cryptographically verify everything yourself:
 
 ### 1. Audit the Source Code
 
@@ -101,20 +101,20 @@ The Oasis Network continuously verifies that the running code matches the on-cha
 
 Learn more about continuous attestation at the [ROFL Registry](https://github.com/ptrus/rofl-registry).
 
-### Trust Model Summary
+### Verification Model
 
-**You don't need to trust:**
-- The service operators
-- That the correct code is running
-- That responses haven't been manipulated
-- That the service queries all providers as claimed
+**No trust required for:**
+- Service operators (can't manipulate results)
+- Code execution (cryptographically proven via TEE)
+- Response authenticity (ECDSA signatures verifiable on-chain)
+- Provider queries (source code is auditable and execution is attested)
 
-**You only need to trust:**
-- The Oasis Network's TEE attestation mechanism
-- The open source code you've audited
-- The cryptographic primitives (ECDSA signatures, SGX/TDX attestation)
+**Security assumptions:**
+- The Oasis Network's TEE attestation mechanism is secure
+- The cryptographic primitives (ECDSA signatures, SGX/TDX attestation) are sound
+- The audited open source code correctly implements the intended logic
 
-Everything else is verifiable.
+Everything is cryptographically verifiable - no trust in operators required.
 
 ---
 
@@ -225,4 +225,4 @@ make build-docker
 
 ---
 
-Built for trustless AI verification on Oasis Network.
+**Built for trustless, cryptographically verifiable AI on Oasis Network.**

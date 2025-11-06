@@ -1,6 +1,6 @@
 services:
   server:
-    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:ffd2539847bf45ccce0d599b3a42ac68bfa86bc95263b60887fc47b4b4934c17
+    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:528100c0e0a1472d48e28a5c3f68706f565a6c4e190bf11a93d6f56207ac5406
     container_name: verisage-server
     command: ./start-server.sh
     ports:
@@ -19,12 +19,19 @@ services:
       - CDP_API_KEY_ID=${CDP_API_KEY_ID:-}
       - CDP_API_KEY_SECRET=${CDP_API_KEY_SECRET:-}
       - FACILITATOR_URL=${FACILITATOR_URL:-}
+      - AGENT0_CHAIN_ID=${AGENT0_CHAIN_ID:-84532}
+      - AGENT0_RPC_URL=${AGENT0_RPC_URL:-}
+      - AGENT0_PRIVATE_KEY=${AGENT0_PRIVATE_KEY:-}
+      - AGENT0_IPFS_PROVIDER=${AGENT0_IPFS_PROVIDER:-pinata}
+      - AGENT0_PINATA_JWT=${AGENT0_PINATA_JWT:-}
+      - AGENT0_WALLET_ADDRESS=${AGENT0_WALLET_ADDRESS:-}
       - DATA_DIR=/app/data
     volumes:
+      - /run/rofl-appd.sock:/run/rofl-appd.sock
       - db-data:/app/data
     restart: unless-stopped
   worker:
-    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:ffd2539847bf45ccce0d599b3a42ac68bfa86bc95263b60887fc47b4b4934c17
+    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:528100c0e0a1472d48e28a5c3f68706f565a6c4e190bf11a93d6f56207ac5406
     container_name: verisage-worker
     command: ./start-worker.sh
     environment:

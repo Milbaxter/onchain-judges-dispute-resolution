@@ -15,6 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from x402.types import HTTPInputSchema, PaywallConfig
 
+from src.agent import initialize_agent
 from src.config import settings
 from src.job_store import job_store
 from src.models import (
@@ -103,6 +104,9 @@ tags_metadata = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     health_task = None
+    metadata_sync_task = None
+    agent_init_task = None
+
     if settings.debug_payments or settings.debug_mock:
         logger.warning("=" * 80)
         if settings.debug_payments:
@@ -111,18 +115,60 @@ async def lifespan(app: FastAPI):
             logger.warning("WARNING: Running with DEBUG_MOCK=true - USING MOCK LLM CLIENTS!")
         logger.warning("=" * 80)
 
-    # Start background task for health status updates.
+    # Check if we should run single-worker tasks (agent init + metadata sync).
+    from src.agent import _acquire_init_lock, _release_init_lock
+
+    is_primary_worker = _acquire_init_lock(timeout=5)
+
+    if is_primary_worker:
+        logger.info("This is the primary worker - handling agent initialization and metadata sync")
+
+        # Initialize Agent0 registration in background (single worker only).
+        # Don't await - let it run async to avoid blocking server startup.
+        async def init_agent_async():
+            """Initialize agent in background without blocking startup."""
+            try:
+                await initialize_agent(
+                    agent0_chain_id=settings.agent0_chain_id,
+                    agent0_rpc_url=settings.agent0_rpc_url,
+                    agent0_private_key=settings.agent0_private_key,
+                    agent0_ipfs_provider=settings.agent0_ipfs_provider,
+                    agent0_pinata_jwt=settings.agent0_pinata_jwt,
+                    agent_name=app.title,
+                    agent_description=app.description,
+                    agent_image="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
+                    agent_wallet_address=settings.agent0_wallet_address,
+                    x402_endpoint_url=f"https://verisage.xyz{app.root_path}/api/v1/query",
+                )
+            except Exception as e:
+                logger.error(f"Agent initialization failed: {e}", exc_info=True)
+
+        # Start agent init as background task to avoid blocking server startup
+        agent_init_task = asyncio.create_task(init_agent_async())
+
+        # Start metadata sync task (single worker only to avoid conflicts).
+        metadata_sync_task = asyncio.create_task(sync_metadata_to_rofl_periodically())
+    else:
+        logger.info("Secondary worker - skipping agent initialization and metadata sync")
+
+    # Start health check task on ALL workers for redundancy.
     health_task = asyncio.create_task(update_health_status_periodically())
 
     try:
         yield
     finally:
-        if health_task:
-            health_task.cancel()
-            try:
-                await health_task
-            except asyncio.CancelledError:
-                pass
+        # Cancel background tasks if they were started.
+        for task in [health_task, metadata_sync_task, agent_init_task]:
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+        # Release lock if this worker held it.
+        if is_primary_worker:
+            _release_init_lock()
 
 
 # Configure FastAPI application.
@@ -173,6 +219,30 @@ app.add_middleware(
 )
 
 
+# Background task to sync metadata to ROFL registry.
+async def sync_metadata_to_rofl_periodically():
+    """Background task that syncs metadata from database to ROFL registry every minute."""
+    while True:
+        try:
+            from oasis_rofl_client import RoflClient
+
+            from src.job_store import job_store
+
+            # Get all metadata from database.
+            metadata = job_store.get_all_metadata()
+
+            if metadata:
+                # Publish all metadata to ROFL registry.
+                rofl_client = RoflClient()
+                await rofl_client.set_metadata(metadata)
+                logger.info(f"Synced {len(metadata)} metadata keys to ROFL registry")
+
+        except Exception as e:
+            logger.error(f"Metadata sync failed: {e}", exc_info=True)
+
+        await asyncio.sleep(60)  # Run every minute.
+
+
 # Background task to update health status every minute.
 async def update_health_status_periodically():
     """Background task that updates health status every 60 seconds."""
@@ -180,8 +250,6 @@ async def update_health_status_periodically():
 
     while True:
         try:
-            await asyncio.sleep(60)
-
             stats = job_store.get_recent_job_stats(limit=10)
             queued_count = job_store.get_queued_job_count()
 
@@ -217,6 +285,8 @@ async def update_health_status_periodically():
                 "last_check": datetime.now(UTC).isoformat(),
                 "error": str(e),
             }
+
+        await asyncio.sleep(60)
 
 
 # Mount static files.
@@ -284,7 +354,7 @@ if not settings.debug_payments:
         description="Verifiable Multi-LLM Truth Oracle - Trustless fact verification powered by multiple independent AI providers (Claude, Gemini, OpenAI). Cryptographically signed responses from code running in Oasis ROFL TEE.",
         paywall_config=PaywallConfig(
             app_name="Verisage.xyz",
-            app_logo="/static/logo.png",
+            app_logo="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
         ),
         input_schema=HTTPInputSchema(
             body_type="json",

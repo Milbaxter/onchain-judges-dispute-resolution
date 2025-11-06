@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     worker_count: int = 8
     job_retention_count: int = 1000  # Number of jobs to keep in database.
 
+    # Agent0 SDK Configuration (optional).
+    agent0_chain_id: int = 84532  # Base Sepolia chain ID.
+    agent0_rpc_url: str | None = None
+    agent0_private_key: str | None = None
+    agent0_ipfs_provider: str = "pinata"
+    agent0_pinata_jwt: str | None = None
+    agent0_wallet_address: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

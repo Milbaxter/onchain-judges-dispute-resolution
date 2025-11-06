@@ -75,6 +75,15 @@ class JobStore:
                 CREATE INDEX IF NOT EXISTS idx_created_at ON jobs(created_at)
             """)
 
+            # Create table for storing ROFL metadata shared between API and workers.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS rofl_metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+
     def create_job(
         self,
         query: str,
@@ -410,6 +419,45 @@ class JobStore:
             count = cursor.fetchone()[0]
 
         return count
+
+    def set_metadata_key(self, key: str, value: str):
+        """Store a metadata key-value pair in the database.
+
+        Args:
+            key: Metadata key
+            value: Metadata value
+        """
+        updated_at = datetime.now(UTC)
+
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO rofl_metadata (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+                """,
+                (key, value, updated_at.isoformat()),
+            )
+
+    def get_all_metadata(self) -> dict[str, str]:
+        """Retrieve all metadata key-value pairs from the database.
+
+        Returns:
+            Dictionary of all metadata keys and values
+        """
+        with self._cursor(row_factory=sqlite3.Row) as cursor:
+            cursor.execute(
+                """
+                SELECT key, value
+                FROM rofl_metadata
+                """
+            )
+
+            rows = cursor.fetchall()
+
+        return {row["key"]: row["value"] for row in rows}
 
 
 # Global job store instance.

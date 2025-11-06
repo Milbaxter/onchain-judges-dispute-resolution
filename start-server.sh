@@ -9,4 +9,5 @@ UVICORN_WORKERS=${UVICORN_WORKERS:-8}
 echo "Starting uvicorn with $UVICORN_WORKERS worker(s)..."
 
 # Start uvicorn web server.
+# Note: File-based locking in lifespan ensures only one worker initializes the agent.
 uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers $UVICORN_WORKERS

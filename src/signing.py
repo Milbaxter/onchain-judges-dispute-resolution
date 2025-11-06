@@ -9,6 +9,9 @@ from src.models import OracleResult
 
 logger = logging.getLogger(__name__)
 
+# Metadata key for storing signing public key.
+SIGNING_PUBLIC_KEY_METADATA = "signing_public_key"
+
 
 class SigningService:
     """Service for signing oracle results using ROFL keymanager."""
@@ -53,22 +56,28 @@ class SigningService:
             self.public_key_hex = self._derive_public_key(self.private_key_hex)
             logger.info(f"Public key: {self.public_key_hex}")
 
-            # Upload public key to metadata.
-            logger.info("Updating ROFL metadata...")
-            try:
-                await self.rofl_client.set_metadata({"signing_public_key": self.public_key_hex})
-            except json.JSONDecodeError:
-                # set_metadata returns 200 OK with empty body, which causes JSON decode error
-                # This is expected - treat as success
-                logger.info("Metadata updated (empty response)")
-            else:
-                logger.info("Metadata updated")
+            # Store public key in job store for API to retrieve and publish to metadata.
+            self._store_public_key(self.public_key_hex)
 
             logger.info("ROFL signing service initialized successfully")
 
         except Exception as e:
             logger.error(f"Failed to initialize ROFL signing service: {e}", exc_info=True)
             # Don't raise - allow service to continue without signing.
+
+    def _store_public_key(self, public_key_hex: str):
+        """Store public key in shared database for API to retrieve.
+
+        Args:
+            public_key_hex: Hex-encoded public key to store
+        """
+        try:
+            from src.job_store import job_store
+
+            job_store.set_metadata_key(SIGNING_PUBLIC_KEY_METADATA, public_key_hex)
+            logger.info("Stored signing public key in database for API")
+        except Exception as e:
+            logger.error(f"Failed to store public key in database: {e}", exc_info=True)
 
     def _derive_public_key(self, private_key_hex: str) -> str:
         """Derive SECP256K1 public key from private key.
