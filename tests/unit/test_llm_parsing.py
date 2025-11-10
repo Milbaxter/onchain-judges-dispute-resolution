@@ -14,6 +14,10 @@ class DummyLLMClient(BaseLLMClient):
         """Not used in these tests."""
         pass
 
+    async def analyze_tweet(self, tweet):
+        """Not used in these tests."""
+        pass
+
 
 @pytest.fixture
 def client():

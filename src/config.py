@@ -23,23 +23,27 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     perplexity_api_key: str | None = None
     openai_api_key: str | None = None
+    grok_api_key: str | None = None
 
     # LLM Weights (equal by default).
     claude_weight: float = 1.0
     gemini_weight: float = 1.0
     perplexity_weight: float = 1.0
     openai_weight: float = 1.0
+    grok_weight: float = 1.0
 
     # LLM Model names.
     claude_model: str = "claude-haiku-4-5-20251001"
     gemini_model: str = "gemini-2.0-flash-exp"
     openai_model: str = "gpt-4o"
     perplexity_model: str = "sonar-pro"
+    grok_model: str = "grok-4-fast"  # Grok-4 fast model for tweet analysis
 
     # x402 Payment Configuration (optional if debug_payments=True).
     x402_payment_address: str | None = None
     x402_network: str = "base-sepolia"
     x402_price: str = "$0.1"
+    x402_tweet_price: str = "$0.15"
 
     # CDP API Keys for x402 payment facilitator (required in production).
     cdp_api_key_id: str | None = None
@@ -49,12 +53,18 @@ class Settings(BaseSettings):
     # CORS configuration (comma-separated origins).
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    # Frontend URL for share link redirects.
+    frontend_url: str = "https://verisage.xyz"
+
     # Proxy configuration.
     behind_cloudflare: bool = False  # Set to true if behind CloudFlare proxy.
 
     # Worker configuration.
     worker_count: int = 8
     job_retention_count: int = 1000  # Number of jobs to keep in database.
+
+    # Feature flags.
+    feature_tweet_analysis: bool = False  # Enable X/Twitter post analysis feature.
 
     # Agent0 SDK Configuration (optional).
     agent0_chain_id: int = 84532  # Base Sepolia chain ID.
@@ -101,7 +111,7 @@ class Settings(BaseSettings):
                     raise ValueError(
                         "CRITICAL: X402_PAYMENT_ADDRESS is required for server in ENVIRONMENT=production"
                     )
-                # CDP keys are only required if not using a custom facilitator URL
+                # CDP keys are only required if not using a custom facilitator URL.
                 if not self.facilitator_url and (
                     not self.cdp_api_key_id or not self.cdp_api_key_secret
                 ):

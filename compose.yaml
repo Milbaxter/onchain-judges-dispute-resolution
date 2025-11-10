@@ -1,6 +1,6 @@
 services:
   server:
-    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:db183ea3ac77267da40c41a34c340b561a48c165887a3ef13655a5eca0bdfea5
+    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:017b098243dc7ae1e7eb5da24893217235e0d9554ba8f254b9145b66c05a8d82
     container_name: verisage-server
     command: ./start-server.sh
     ports:
@@ -12,6 +12,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - DEBUG_MOCK=${DEBUG_MOCK:-false}
       - DEBUG_PAYMENTS=${DEBUG_PAYMENTS:-false}
+      - FEATURE_TWEET_ANALYSIS=${FEATURE_TWEET_ANALYSIS:-false}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
       - X402_PAYMENT_ADDRESS=${X402_PAYMENT_ADDRESS:-}
       - X402_NETWORK=${X402_NETWORK:-base-sepolia}
@@ -32,7 +33,7 @@ services:
       - db-data:/app/data
     restart: unless-stopped
   worker:
-    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:db183ea3ac77267da40c41a34c340b561a48c165887a3ef13655a5eca0bdfea5
+    image: ghcr.io/ptrus/verisage.xyz:latest@sha256:017b098243dc7ae1e7eb5da24893217235e0d9554ba8f254b9145b66c05a8d82
     container_name: verisage-worker
     command: ./start-worker.sh
     environment:
@@ -44,6 +45,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GROK_API_KEY=${GROK_API_KEY:-}
       - DATA_DIR=/app/data
     volumes:
       - /run/rofl-appd.sock:/run/rofl-appd.sock

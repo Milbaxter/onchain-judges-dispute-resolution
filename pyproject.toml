@@ -22,7 +22,7 @@ dependencies = [
     "coincurve>=20.0.0",
     "cdp-sdk>=0.21.0",
     "perplexityai>=0.19.1",
-    "agent0-sdk @ git+https://github.com/ptrus/agent0-py.git@ptrus/fix/indexer-deps-group",
+    "agent0-sdk>=0.2.2",
 ]
 
 [dependency-groups]

@@ -3,7 +3,7 @@
 import asyncio
 
 from src.llm_clients.base import BaseLLMClient
-from src.models import DecisionType, LLMResponse
+from src.models import DecisionType, LLMResponse, TweetLLMResponse, TweetVerdictType
 
 
 class MockLLMClient(BaseLLMClient):
@@ -44,5 +44,58 @@ REASONING: This is a mock response for testing purposes. The mock oracle always 
             confidence=0.85,
             reasoning="This is a mock response for testing purposes. The mock oracle always returns YES with 85% confidence after a 5-second delay to simulate real API behavior.",
             raw_response=raw_response,
+            error=None,
+        )
+
+    async def analyze_tweet(self, tweet_url: str) -> TweetLLMResponse:
+        """Return a mock tweet analysis response after sleeping.
+
+        Args:
+            tweet_url: The tweet URL (ignored in mock mode)
+
+        Returns:
+            TweetLLMResponse with varied mock data based on provider
+        """
+        # Simulate API latency.
+        await asyncio.sleep(self.sleep_duration)
+
+        # Vary responses based on provider to simulate real multi-LLM consensus.
+        if "claude" in self.provider_name.lower():
+            verdict = TweetVerdictType.CREDIBLE
+            confidence = 0.90
+            analysis = "The post contains verifiable factual claims that align with public records and reputable sources. No significant red flags detected."
+            claims = [
+                "Factual claim verified through primary sources",
+                "Dates and figures match official records",
+            ]
+            flags = []
+        elif "gemini" in self.provider_name.lower():
+            verdict = TweetVerdictType.QUESTIONABLE
+            confidence = 0.75
+            analysis = "While some facts check out, the post uses emotionally charged language and selective framing that may mislead readers."
+            claims = ["Core fact is accurate but lacks context"]
+            flags = ["Emotionally charged language", "Selective presentation of facts"]
+        elif "perplexity" in self.provider_name.lower():
+            verdict = TweetVerdictType.CREDIBLE
+            confidence = 0.85
+            analysis = "Cross-referenced with multiple reliable sources. Claims are substantiated and presented with appropriate context."
+            claims = ["Primary claim verified across multiple sources", "Timeline is accurate"]
+            flags = []
+        else:  # openai or other
+            verdict = TweetVerdictType.OPINION
+            confidence = 0.95
+            analysis = "The post expresses subjective viewpoints rather than objective claims. While factually grounded, it's primarily an opinion piece."
+            claims = []
+            flags = ["Subjective interpretation of events"]
+
+        return TweetLLMResponse(
+            provider=self.provider_name,
+            model="mock",
+            verdict=verdict,
+            confidence=confidence,
+            analysis=analysis,
+            identified_claims=claims,
+            red_flags=flags,
+            raw_response=f'{{"verdict": "{verdict.value}", "confidence": {confidence}, "analysis": "{analysis}"}}',
             error=None,
         )

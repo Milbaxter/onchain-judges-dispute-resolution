@@ -93,7 +93,7 @@ def require_payment_async_settle(
         Callable: FastAPI middleware function that checks for valid payment before processing requests
     """
 
-    # Validate network is supported
+    # Validate network is supported.
     supported_networks = get_args(SupportedNetworks)
     if network not in supported_networks:
         raise ValueError(f"Unsupported network: {network}. Must be one of: {supported_networks}")
@@ -116,7 +116,7 @@ def require_payment_async_settle(
         except Exception:
             pass
 
-        # Fallback to text or default message
+        # Fallback to text or default message.
         text = response.text.strip()
         return f"HTTP {response.status_code}: {text[:100]}" if text else default_msg
 
@@ -125,7 +125,7 @@ def require_payment_async_settle(
         max_retries = 5
         retry_delays = [1.0, 1.0, 2.0, 3.0, 4.0]  # Total: 11 seconds (1s initial + retries)
 
-        # Wait 1 second before first attempt to give facilitator time to register payment
+        # Wait 1 second before first attempt to give facilitator time to register payment.
         await asyncio.sleep(1.0)
 
         for attempt in range(max_retries + 1):
@@ -142,11 +142,11 @@ def require_payment_async_settle(
                 follow_redirects=True,
             )
 
-            # Success
+            # Success.
             if response.status_code == 200:
                 return SettleResponse(**response.json())
 
-            # Retry on 404 (payment not registered yet after verification)
+            # Retry on 404 (payment not registered yet after verification).
             if response.status_code == 404 and attempt < max_retries:
                 delay = retry_delays[attempt]
                 logger.info(
@@ -156,7 +156,7 @@ def require_payment_async_settle(
                 await asyncio.sleep(delay)
                 continue
 
-            # Failed after retries or non-retryable error
+            # Failed after retries or non-retryable error.
             error_msg = parse_error_response(
                 response,
                 f"Payment not found after {max_retries + 1} attempts"
@@ -185,7 +185,7 @@ def require_payment_async_settle(
                 logger.info(
                     f"Payment settled successfully for resource: {payment_requirements.resource}"
                 )
-                # Call success callback if provided
+                # Call success callback if provided.
                 if on_settlement_success:
                     try:
                         await on_settlement_success(request, payment, payment_requirements)
@@ -196,7 +196,7 @@ def require_payment_async_settle(
             else:
                 error_reason = settle_response.error_reason or "Unknown error"
                 logger.warning(f"Settlement failed: {error_reason}")
-                # Call failure callback if provided
+                # Call failure callback if provided.
                 if on_settlement_failure:
                     try:
                         await on_settlement_failure(
@@ -208,7 +208,7 @@ def require_payment_async_settle(
                         )
         except Exception as e:
             logger.error(f"Settlement error: {e}", exc_info=True)
-            # Call failure callback on exception
+            # Call failure callback on exception.
             if on_settlement_failure:
                 try:
                     await on_settlement_failure(
@@ -218,14 +218,14 @@ def require_payment_async_settle(
                     logger.error(f"Error in settlement failure callback: {cb_error}", exc_info=True)
 
     async def middleware(request: Request, call_next: Callable):
-        # Skip if the path is not the same as the path in the middleware
+        # Skip if the path is not the same as the path in the middleware.
         if not path_is_match(path, request.url.path):
             return await call_next(request)
 
-        # Get resource URL if not explicitly provided
+        # Get resource URL if not explicitly provided.
         resource_url = resource or str(request.url)
 
-        # Construct payment details
+        # Construct payment details.
         payment_requirements = [
             PaymentRequirements(
                 scheme="exact",
@@ -280,13 +280,13 @@ def require_payment_async_settle(
                     headers=headers,
                 )
 
-        # Check for payment header
+        # Check for payment header.
         payment_header = request.headers.get("X-PAYMENT", "")
 
         if payment_header == "":
             return x402_response("No X-PAYMENT header provided")
 
-        # Decode payment header
+        # Decode payment header.
         try:
             payment_dict = json.loads(safe_base64_decode(payment_header))
             payment = PaymentPayload(**payment_dict)
@@ -296,7 +296,7 @@ def require_payment_async_settle(
             )
             return x402_response("Invalid payment header format")
 
-        # Find matching payment requirements
+        # Find matching payment requirements.
         selected_payment_requirements = find_matching_payment_requirements(
             payment_requirements, payment
         )
@@ -304,7 +304,7 @@ def require_payment_async_settle(
         if not selected_payment_requirements:
             return x402_response("No matching payment requirements found")
 
-        # Verify payment
+        # Verify payment.
         verify_response = await facilitator.verify(payment, selected_payment_requirements)
 
         if not verify_response.is_valid:
@@ -314,19 +314,19 @@ def require_payment_async_settle(
         request.state.payment_details = selected_payment_requirements
         request.state.verify_response = verify_response
 
-        # Process the request
+        # Process the request.
         response = await call_next(request)
 
-        # Early return without settling if the response is not a 2xx
+        # Early return without settling if the response is not a 2xx.
         if response.status_code < 200 or response.status_code >= 300:
             return response
 
-        # Schedule settlement to happen in the background (non-blocking)
-        # This allows the response to be sent immediately, avoiding proxy idle timeouts
+        # Schedule settlement to happen in the background (non-blocking).
+        # This allows the response to be sent immediately, avoiding proxy idle timeouts.
         asyncio.create_task(settle_in_background(request, payment, selected_payment_requirements))
 
-        # Return response immediately without waiting for settlement
-        # Note: We don't include X-PAYMENT-RESPONSE header since settlement happens async
+        # Return response immediately without waiting for settlement.
+        # Note: We don't include X-PAYMENT-RESPONSE header since settlement happens async.
         logger.info("Returning response immediately, settlement scheduled in background")
 
         return response

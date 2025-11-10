@@ -535,6 +535,48 @@
         border-bottom-color: #10b981;
       }
 
+      /* Share Section */
+      .share-section {
+        padding: 20px 24px;
+        background: rgba(255, 255, 255, 0.01);
+        border-bottom: 1px solid #222;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .share-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: transparent;
+        border: 1px solid #27272a;
+        color: #a1a1aa;
+        font-size: 0.9em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+
+      .share-btn:hover {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: #10b981;
+        color: #10b981;
+      }
+
+      .share-icon {
+        font-size: 1.1em;
+      }
+
+      .share-note {
+        font-size: 0.75em;
+        color: #71717a;
+        margin: 0;
+      }
+
       .final-decision {
         padding: 32px 24px;
         border-bottom: 1px solid #222;
@@ -752,7 +794,6 @@
 
       .llm-response {
         padding: 20px;
-        margin: 8px;
         border-left: 3px solid #27272a;
         border: 1px solid #27272a;
         background: transparent;
@@ -916,6 +957,206 @@
         border-top: 1px solid #222;
       }
 
+      /* Mode Toggle */
+      .mode-toggle {
+        display: flex;
+        gap: 0;
+        margin-bottom: 30px;
+        border: 1px solid #27272a;
+        background: transparent;
+        overflow: hidden;
+      }
+
+      .mode-btn {
+        flex: 1;
+        padding: 14px 24px;
+        background: transparent;
+        border: none;
+        color: #71717a;
+        font-size: 0.9em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .mode-btn:hover {
+        background: rgba(255, 255, 255, 0.02);
+        color: #a1a1aa;
+      }
+
+      .mode-btn.active {
+        color: #e4e4e7;
+        border-bottom-color: #10b981;
+        background: rgba(16, 185, 129, 0.05);
+      }
+
+      /* Feed Filters */
+      .feed-filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-btn {
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid #27272a;
+        color: #71717a;
+        font-size: 0.8em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .filter-btn:hover {
+        background: rgba(255, 255, 255, 0.02);
+        color: #a1a1aa;
+      }
+
+      .filter-btn.active {
+        color: #10b981;
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.05);
+      }
+
+      /* Tweet Input Styles */
+      input[type='text'] {
+        width: 100%;
+        padding: 16px;
+        background: #0a0a0a;
+        border: 1px solid #27272a;
+        border-radius: 0;
+        font-size: 1em;
+        font-family: inherit;
+        color: #e4e4e7;
+        transition: border-color 0.2s ease;
+      }
+
+      input[type='text']::placeholder {
+        color: #52525b;
+      }
+
+      input[type='text']:focus {
+        outline: none;
+        border-color: #10b981;
+        background: #0f0f0f;
+      }
+
+      /* Tweet verdict colors */
+      .final-decision.credible {
+        border-left: 4px solid #10b981;
+      }
+
+      .final-decision.questionable {
+        border-left: 4px solid #eab308;
+      }
+
+      .final-decision.misleading {
+        border-left: 4px solid #f97316;
+      }
+
+      .final-decision.opinion {
+        border-left: 4px solid #3b82f6;
+      }
+
+      .final-decision.credible .confidence-fill {
+        background: linear-gradient(90deg, #10b981, #059669);
+      }
+
+      .final-decision.questionable .confidence-fill {
+        background: linear-gradient(90deg, #eab308, #ca8a04);
+      }
+
+      .final-decision.misleading .confidence-fill {
+        background: linear-gradient(90deg, #f97316, #ea580c);
+      }
+
+      .final-decision.opinion .confidence-fill {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+      }
+
+      .recent-summary.credible {
+        border-left-color: #10b981;
+      }
+
+      .recent-summary.questionable {
+        border-left-color: #eab308;
+      }
+
+      .recent-summary.misleading {
+        border-left-color: #f97316;
+      }
+
+      .recent-summary.opinion {
+        border-left-color: #3b82f6;
+      }
+
+      .recent-summary.credible .decision-icon {
+        color: #10b981;
+      }
+
+      .recent-summary.questionable .decision-icon {
+        color: #eab308;
+      }
+
+      .recent-summary.misleading .decision-icon {
+        color: #f97316;
+      }
+
+      .recent-summary.opinion .decision-icon {
+        color: #3b82f6;
+      }
+
+      .provider-item.credible {
+        border-left-color: #10b981;
+      }
+
+      .provider-item.questionable {
+        border-left-color: #eab308;
+      }
+
+      .provider-item.misleading {
+        border-left-color: #f97316;
+      }
+
+      .provider-item.opinion {
+        border-left-color: #3b82f6;
+      }
+
+      .provider-item.credible .provider-decision {
+        color: #10b981;
+      }
+
+      .provider-item.questionable .provider-decision {
+        color: #eab308;
+      }
+
+      .provider-item.misleading .provider-decision {
+        color: #f97316;
+      }
+
+      .provider-item.opinion .provider-decision {
+        color: #3b82f6;
+      }
+
+      /* Query type indicator */
+      .query-type-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        font-size: 0.9em;
+        flex-shrink: 0;
+        margin-right: 4px;
+      }
+
       /* Footer */
       footer {
         background: transparent;
@@ -1022,13 +1263,19 @@
       <main>
         <!-- Query Form. -->
         <div id="querySection" class="query-section">
-          <div class="info-box">
-            <p>
+          <!-- Mode Toggle -->
+          <div class="mode-toggle">
+            <button class="mode-btn active" data-mode="fact" id="factModeBtn">Verify Fact</button>
+            <button class="mode-btn" data-mode="tweet" id="tweetModeBtn">Analyze X Post</button>
+          </div>
+
+          <div class="info-box" id="infoBox">
+            <p id="infoText">
               Trustless fact verification powered by multiple independent AI providers. Query
-              Claude, Gemini, and OpenAI simultaneously—receive consensus answers with full
-              transparency.
+              Claude, Gemini, OpenAI, Perplexity, and Grok simultaneously—receive consensus answers
+              with full transparency.
             </p>
-            <p style="margin-top: 12px">
+            <p style="margin-top: 12px" id="infoNote">
               <strong>Note:</strong> Queries should be answerable with YES/NO. Be specific with
               dates, names, and facts you want verified.
             </p>
@@ -1059,21 +1306,37 @@
           </div>
 
           <form id="queryForm">
-            <label for="queryInput">Ask the Oracle:</label>
-            <textarea
-              id="queryInput"
-              required
-              minlength="10"
-              maxlength="256"
-              placeholder="e.g., Did the Lakers win against the Warriors on October 22, 2025?"
-            ></textarea>
-            <div class="char-counter"><span id="charCount">0</span> / 256</div>
+            <!-- Fact Mode Input -->
+            <div id="factInput" style="display: block">
+              <label for="queryInput">Your Question</label>
+              <textarea
+                id="queryInput"
+                minlength="10"
+                maxlength="256"
+                placeholder="e.g., Did the Lakers win against the Warriors on October 22, 2025?"
+              ></textarea>
+              <div class="char-counter"><span id="charCount">0</span> / 256</div>
+            </div>
+
+            <!-- Tweet Mode Input -->
+            <div id="tweetInput" style="display: none">
+              <label for="tweetUrlInput">X Post URL</label>
+              <input
+                type="text"
+                id="tweetUrlInput"
+                minlength="28"
+                maxlength="200"
+                placeholder="https://x.com/username/status/1234567890"
+                pattern="https?://(twitter\.com|x\.com)/.+"
+              />
+              <div class="char-counter"><span id="tweetCharCount">0</span> / 200</div>
+            </div>
 
             <button type="submit" id="submitButton" class="btn" disabled style="margin-top: 20px">
               <span class="loading-indicator">
                 <span class="loading-spinner"></span> Consulting oracles...
               </span>
-              <span class="button-text">Submit Query ($0.1 USDC on Base)</span>
+              <span class="button-text" id="submitButtonText">Verify ($0.1 USDC on Base)</span>
             </button>
 
             <div class="submit-notice">Connect your wallet to submit queries</div>
@@ -1097,7 +1360,7 @@
 
         <!-- Recent Public Verifications. -->
         <div class="recent-section">
-          <h2>Recent Verifications</h2>
+          <h2 id="recentActivityHeading">Recent Fact-Checks</h2>
           <div id="recent-resolutions"></div>
         </div>
       </main>

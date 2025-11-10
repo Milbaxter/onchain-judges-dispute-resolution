@@ -16,6 +16,11 @@ let walletClient = null;
 let fetchWithPay = null;
 let currentAccount = null;
 let isServiceHealthy = true;
+let currentMode = 'fact'; // 'fact' or 'tweet'
+let featureFlags = {
+  tweet_analysis: false, // Will be fetched from backend
+};
+let recentJobIds = new Set();
 
 // DOM elements.
 const connectButton = document.getElementById('connectButton');
@@ -25,8 +30,17 @@ const networkBadge = document.getElementById('networkBadge');
 const querySection = document.getElementById('querySection');
 const queryForm = document.getElementById('queryForm');
 const submitButton = document.getElementById('submitButton');
+const submitButtonText = document.getElementById('submitButtonText');
 const queryInput = document.getElementById('queryInput');
 const charCount = document.getElementById('charCount');
+const tweetUrlInput = document.getElementById('tweetUrlInput');
+const tweetCharCount = document.getElementById('tweetCharCount');
+const factInput = document.getElementById('factInput');
+const tweetInput = document.getElementById('tweetInput');
+const factModeBtn = document.getElementById('factModeBtn');
+const tweetModeBtn = document.getElementById('tweetModeBtn');
+const infoText = document.getElementById('infoText');
+const infoNote = document.getElementById('infoNote');
 const loadingSection = document.getElementById('loadingSection');
 const loadingMessage = document.getElementById('loadingMessage');
 const resultSection = document.getElementById('resultSection');
@@ -44,6 +58,105 @@ apiDocsLink.href = `${API_URL}/docs`;
 // Set API URL link in footer.
 apiUrlLink.href = `${API_URL}/docs`;
 apiUrlLink.textContent = API_URL;
+
+// Mode toggle functionality
+function updateUIForMode(mode) {
+  currentMode = mode;
+
+  const recentActivityHeading = document.getElementById('recentActivityHeading');
+
+  if (mode === 'fact') {
+    factInput.style.display = 'block';
+    tweetInput.style.display = 'none';
+    submitButtonText.textContent = 'Verify ($0.1 USDC on Base)';
+    factModeBtn.classList.add('active');
+    tweetModeBtn.classList.remove('active');
+
+    infoText.textContent =
+      'Trustless fact verification powered by multiple independent AI providers. Query Claude, Gemini, OpenAI, Perplexity, and Grok simultaneously—receive consensus answers with full transparency.';
+    infoNote.innerHTML =
+      '<strong>Note:</strong> Queries should be answerable with YES/NO. Be specific with dates, names, and facts you want verified.';
+
+    // Update recent activity heading
+    if (recentActivityHeading) {
+      recentActivityHeading.textContent = 'Recent Fact-Checks';
+    }
+  } else {
+    factInput.style.display = 'none';
+    tweetInput.style.display = 'block';
+    submitButtonText.textContent = 'Analyze ($0.15 USDC on Base)';
+    tweetModeBtn.classList.add('active');
+    factModeBtn.classList.remove('active');
+
+    infoText.textContent =
+      'AI-powered social media verification using Grok. Submit any X (Twitter) post URL to receive a comprehensive credibility analysis. Grok has direct access to X data and identifies factual claims, detects misinformation, evaluates context, and flags manipulation tactics.';
+    infoNote.innerHTML =
+      '<strong>Note:</strong> Provide the full URL to an X post (e.g., https://x.com/username/status/1234567890). Analysis includes: factual claim verification, source quality assessment, bias detection, and content type classification (credible, questionable, misleading, or opinion).';
+
+    // Update recent activity heading
+    if (recentActivityHeading) {
+      recentActivityHeading.textContent = 'Recent X Post Analyses';
+    }
+  }
+
+  // Store mode preference
+  localStorage.setItem('preferredMode', mode);
+
+  // Reload recent results based on current mode
+  loadRecentResolutions();
+}
+
+// Mode toggle handlers
+factModeBtn.addEventListener('click', () => {
+  updateUIForMode('fact');
+  window.location.hash = 'fact';
+});
+
+tweetModeBtn.addEventListener('click', () => {
+  updateUIForMode('tweet');
+  window.location.hash = 'tweet';
+});
+
+// Check URL hash for deep linking
+function loadModeFromURL() {
+  const hash = window.location.hash.substring(1); // Remove #
+  if (hash === 'tweet' || hash === 'analyze-tweet') {
+    updateUIForMode('tweet');
+    return true;
+  } else if (hash === 'fact' || hash === 'fact-check') {
+    updateUIForMode('fact');
+    return true;
+  }
+  return false;
+}
+
+// Load mode from URL hash first, then localStorage
+if (!loadModeFromURL()) {
+  const preferredMode = localStorage.getItem('preferredMode');
+  if (preferredMode === 'tweet') {
+    updateUIForMode('tweet');
+    window.location.hash = 'tweet';
+  } else {
+    // Default to fact mode and set hash
+    window.location.hash = 'fact';
+  }
+}
+
+// Handle hash changes for navigation (e.g., browser back/forward)
+window.addEventListener('hashchange', () => {
+  loadModeFromURL();
+});
+
+// Event delegation for share buttons in recent fact-checks
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('share-button-recent')) {
+    const jobId = e.target.getAttribute('data-job-id');
+    if (jobId) {
+      // eslint-disable-next-line no-undef
+      copyShareLinkRecent(jobId, e.target);
+    }
+  }
+});
 
 // Connect wallet.
 connectButton.addEventListener('click', async () => {
@@ -168,39 +281,70 @@ queryForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const query = queryInput.value.trim();
-
-  if (!query || query.length < 10 || query.length > 256) {
-    showError('Query must be between 10 and 256 characters');
-    return;
-  }
-
-  // Validate query pattern (matches backend validation).
-  const allowedPattern = /^[a-zA-Z0-9\s.,?!\-'"":;()/@#$%&+=]+$/;
-  if (!allowedPattern.test(query)) {
-    showError(
-      'Query contains invalid characters. Only alphanumeric and common punctuation allowed.'
-    );
-    return;
-  }
-
   if (!fetchWithPay) {
     showError('Please connect your wallet first');
     return;
   }
 
+  let endpoint, payload;
+
+  if (currentMode === 'fact') {
+    const query = queryInput.value.trim();
+
+    if (!query || query.length < 10 || query.length > 256) {
+      showError('Query must be between 10 and 256 characters');
+      return;
+    }
+
+    // Validate query pattern (matches backend validation).
+    const allowedPattern = /^[a-zA-Z0-9\s.,?!\-'"":;()/@#$%&+=]+$/;
+    if (!allowedPattern.test(query)) {
+      showError(
+        'Query contains invalid characters. Only alphanumeric and common punctuation allowed.'
+      );
+      return;
+    }
+
+    endpoint = `${API_URL}/api/v1/query`;
+    payload = { query };
+  } else {
+    // Tweet mode
+    const tweetUrl = tweetUrlInput.value.trim();
+
+    if (!tweetUrl || tweetUrl.length < 28 || tweetUrl.length > 200) {
+      showError('X Post URL must be between 28 and 200 characters');
+      return;
+    }
+
+    // Validate tweet URL pattern (matches backend validation)
+    const tweetUrlPattern = /^https?:\/\/(twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+.*$/;
+    if (!tweetUrlPattern.test(tweetUrl)) {
+      showError(
+        'Please provide a valid X (Twitter) post URL (e.g., https://x.com/username/status/1234567890)'
+      );
+      return;
+    }
+
+    endpoint = `${API_URL}/api/v1/analyze-tweet`;
+    payload = { tweet_url: tweetUrl };
+  }
+
   try {
     hideError();
-    showLoading('Submitting query with payment...');
+    showLoading(
+      currentMode === 'fact'
+        ? 'Submitting query with payment...'
+        : 'Submitting X post analysis with payment...'
+    );
     submitButton.disabled = true;
 
     // Submit query - payment will be handled automatically by x402-fetch.
-    const response = await fetchWithPay(`${API_URL}/api/v1/query`, {
+    const response = await fetchWithPay(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -236,7 +380,7 @@ queryForm.addEventListener('submit', async (e) => {
       errorMessage = `${errorMessage} (x402 facilitator issue - please try again)`;
     }
 
-    showError(`Failed to submit query: ${errorMessage}`);
+    showError(`Failed to submit ${currentMode === 'fact' ? 'query' : 'analysis'}: ${errorMessage}`);
     hideLoading();
     // Only re-enable if wallet is connected.
     if (fetchWithPay) {
@@ -250,7 +394,11 @@ async function pollForResults(jobId) {
   const maxPolls = 90; // 6 minutes max.
   const pollInterval = 4000; // 4 seconds.
 
-  showLoading('Querying multiple AI providers...');
+  const loadingText =
+    currentMode === 'fact'
+      ? 'Querying multiple AI providers...'
+      : 'Analyzing X post with Grok AI...';
+  showLoading(loadingText);
 
   for (let i = 0; i < maxPolls; i++) {
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -279,9 +427,14 @@ async function pollForResults(jobId) {
       // Update loading message based on status.
       const statusMessages = {
         pending: 'Confirming payment settlement...',
-        processing: 'Querying AI providers and analyzing responses...',
+        processing:
+          currentMode === 'fact'
+            ? 'Querying AI providers and analyzing responses...'
+            : 'Analyzing X post with Grok AI...',
       };
-      loadingMessage.textContent = statusMessages[data.status] || 'Processing your query...';
+      loadingMessage.textContent =
+        statusMessages[data.status] ||
+        (currentMode === 'fact' ? 'Processing your query...' : 'Processing your analysis...');
     } catch (error) {
       showError(`Failed to get results: ${error.message}`);
       hideLoading();
@@ -304,11 +457,17 @@ async function pollForResults(jobId) {
 // Display result.
 function displayResult(jobData) {
   const result = jobData.result;
-  const decision = result.final_decision.toLowerCase();
+
+  // Handle both factual (final_decision) and tweet (final_verdict) results
+  const decision = (result.final_decision || result.final_verdict || 'uncertain').toLowerCase();
   const confidence = (result.final_confidence * 100).toFixed(1);
 
-  // Parse and format explanation using the shared function.
-  const explanationHtml = formatExplanation(result.explanation);
+  // Determine if this is a tweet analysis result
+  const isTweetResult = !!result.final_verdict;
+
+  // Parse and format explanation/analysis using the shared function.
+  const explanationText = isTweetResult ? result.analysis_summary : result.explanation;
+  const explanationHtml = formatExplanation(explanationText);
 
   // Format payment info if available.
   let paymentInfoHtml = '';
@@ -364,33 +523,60 @@ function displayResult(jobData) {
     `;
   }
 
+  // Format the header based on result type
+  const headerLabel = isTweetResult ? 'X Post URL' : 'Query';
+  const headerValue = isTweetResult ? result.tweet.url : result.query;
+
+  // Create shareable link
+  const shareUrl = `${API_URL}/results_social/${jobData.job_id}`;
+
   let html = `
     <div class="result-card">
       <div class="result-header">
-        <h3>Query: ${escapeHtml(result.query)}</h3>
+        <h3>${headerLabel}: ${escapeHtml(headerValue)}</h3>
         ${paymentInfoHtml}
       </div>
 
+      <div class="share-section">
+        <button class="share-btn" onclick="copyShareLink('${shareUrl}', event)">
+          <span class="share-icon">🔗</span>
+          <span class="share-text">Share / Copy Link</span>
+        </button>
+        <p class="share-note">Share this fact-check result on social media</p>
+      </div>
+
       <div class="final-decision ${decision}">
-        <h4>Final Decision: ${decision.toUpperCase()}</h4>
+        <h4>Final ${isTweetResult ? 'Verdict' : 'Decision'}: ${decision.toUpperCase()}</h4>
         <div class="confidence-bar">
           <div class="confidence-fill" style="width: ${confidence}%"></div>
         </div>
         <p class="confidence-text">Confidence: ${confidence}%</p>
       </div>
 
+      ${
+        !isTweetResult
+          ? `
       <div class="explanation">
         <h4>Consensus Analysis</h4>
         ${explanationHtml}
       </div>
+      `
+          : ''
+      }
 
-      <details class="llm-details">
-        <summary>View Individual LLM Responses</summary>
+      <details class="llm-details" ${isTweetResult ? 'open' : ''}>
+        <summary>${isTweetResult ? 'Grok Analysis' : 'View Individual LLM Responses'}</summary>
         <div class="llm-responses">
   `;
 
   for (const llm of result.llm_responses) {
     const llmConfidence = (llm.confidence * 100).toFixed(1);
+
+    // Get decision/verdict and reasoning/analysis based on result type
+    const llmDecision = isTweetResult ? llm.verdict : llm.decision;
+    const llmReasoning = isTweetResult ? llm.analysis : llm.reasoning;
+    const decisionLabel = isTweetResult ? 'Verdict' : 'Decision';
+    const reasoningLabel = isTweetResult ? 'Analysis' : 'Reasoning';
 
     html += `
       <div class="llm-response ${llm.error ? 'error' : ''}">
@@ -400,9 +586,9 @@ function displayResult(jobData) {
           llm.error
             ? `<p class="error-text">Request failed</p>`
             : `
-            <p><strong>Decision:</strong> ${llm.decision.toUpperCase()}</p>
+            <p><strong>${decisionLabel}:</strong> ${llmDecision.toUpperCase()}</p>
             <p><strong>Confidence:</strong> ${llmConfidence}%</p>
-            <p><strong>Reasoning:</strong> ${escapeHtml(llm.reasoning)}</p>
+            <p><strong>${reasoningLabel}:</strong> ${escapeHtml(llmReasoning)}</p>
           `
         }
       </div>
@@ -519,8 +705,8 @@ function formatExplanation(explanation) {
   lines.forEach((line) => {
     const trimmed = line.trim();
 
-    // Skip the redundant "Final Decision" line.
-    if (trimmed.startsWith('**Final Decision:')) {
+    // Skip the redundant "Final Decision" or "Final Verdict" line.
+    if (trimmed.startsWith('**Final Decision:') || trimmed.startsWith('**Final Verdict:')) {
       return;
     }
 
@@ -593,6 +779,29 @@ function formatExplanation(explanation) {
   return html;
 }
 
+// Copy share link from recent fact-checks
+window.copyShareLinkRecent = async function (jobId, btn) {
+  try {
+    const shareUrl = `${API_URL}/results_social/${jobId}`;
+    await window.navigator.clipboard.writeText(shareUrl);
+
+    // Show success feedback
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Link Copied!';
+    btn.style.borderColor = '#10b981';
+    btn.style.color = '#10b981';
+
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.borderColor = '#27272a';
+      btn.style.color = '#a1a1aa';
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy link:', err);
+    showError('Failed to copy link to clipboard');
+  }
+};
+
 function resetWallet() {
   walletClient = null;
   fetchWithPay = null;
@@ -604,7 +813,7 @@ function resetWallet() {
   submitButton.disabled = true;
 }
 
-// Character counter.
+// Character counter for fact mode.
 if (queryInput && charCount) {
   charCount.textContent = queryInput.value.length;
   queryInput.addEventListener('input', function () {
@@ -614,11 +823,41 @@ if (queryInput && charCount) {
   });
 }
 
-// Recent resolutions feed.
-let recentJobIds = new Set();
+// Character counter for tweet mode.
+if (tweetUrlInput && tweetCharCount) {
+  tweetCharCount.textContent = tweetUrlInput.value.length;
+  tweetUrlInput.addEventListener('input', function () {
+    if (tweetCharCount) {
+      tweetCharCount.textContent = this.value.length;
+    }
+  });
+}
 
-function fetchRecentResolutions() {
-  fetch(`${API_URL}/api/v1/recent?limit=5&exclude_uncertain=false`)
+// Recent resolutions feed.
+
+// Load recent resolutions based on current mode
+function loadRecentResolutions() {
+  // Filter by current mode: 'fact' or 'tweet'
+  const queryType = currentMode;
+
+  // Clear container and job IDs when switching modes
+  const container = document.getElementById('recent-resolutions');
+  if (container) {
+    container.innerHTML = '';
+    recentJobIds.clear();
+  }
+
+  fetchRecentResolutions(queryType);
+}
+
+function fetchRecentResolutions(queryType = null) {
+  // Build URL with query_type parameter if specified
+  let url = `${API_URL}/api/v1/recent?limit=5&exclude_uncertain=false`;
+  if (queryType) {
+    url += `&query_type=${queryType}`;
+  }
+
+  fetch(url)
     .then((response) => response.json())
     .then((jobs) => {
       const container = document.getElementById('recent-resolutions');
@@ -674,21 +913,41 @@ function createCollapsedResult(job) {
   if (!job.result) return '';
 
   const result = job.result;
-  const decisionClass = result.final_decision.toLowerCase();
-  const decisionIcon = decisionClass === 'yes' ? '✓' : decisionClass === 'no' ? '✗' : '?';
+
+  // Handle both factual (final_decision) and tweet (final_verdict) results
+  const isTweetResult = !!result.final_verdict;
+  const decision = (result.final_decision || result.final_verdict || 'uncertain').toLowerCase();
+  const queryType = isTweetResult ? 'tweet' : 'fact';
+
+  // Choose appropriate icon based on result type
+  let decisionIcon;
+  if (isTweetResult) {
+    // Tweet verdicts: CREDIBLE/QUESTIONABLE/MISLEADING/OPINION
+    if (decision === 'credible') decisionIcon = '✓';
+    else if (decision === 'questionable') decisionIcon = '?';
+    else if (decision === 'misleading') decisionIcon = '⚠';
+    else if (decision === 'opinion') decisionIcon = '💭';
+    else decisionIcon = '?';
+  } else {
+    // Factual verdicts: YES/NO/UNCERTAIN
+    decisionIcon = decision === 'yes' ? '✓' : decision === 'no' ? '✗' : '?';
+  }
+
+  // Format display text - use appropriate field based on result type
+  const displayText = isTweetResult ? result.tweet?.url || job.query : result.query;
 
   // Format timestamp.
   const timestamp = job.completed_at ? formatTimeAgo(job.completed_at) : '';
 
   return `
-    <details class="recent-result" data-job-id="${job.job_id}">
-      <summary class="recent-summary ${decisionClass}">
+    <details class="recent-result" data-job-id="${job.job_id}" data-type="${queryType}">
+      <summary class="recent-summary ${decision}">
         <span class="decision-icon">${decisionIcon}</span>
-        <span class="query-text">${escapeHtml(result.query)}</span>
-        <div class="recent-meta">
+        <span class="query-text">${escapeHtml(displayText)}</span>
+        <span class="recent-meta">
           ${timestamp ? `<span class="recent-time">${timestamp}</span>` : ''}
           <span class="confidence-badge">${(result.final_confidence * 100).toFixed(0)}%</span>
-        </div>
+        </span>
       </summary>
       <div class="recent-details">
         ${
@@ -720,12 +979,18 @@ function createCollapsedResult(job) {
         `
             : ''
         }
+        ${
+          !isTweetResult && result.explanation
+            ? `
         <div class="explanation">
           <h4>Consensus Analysis</h4>
           ${formatExplanation(result.explanation)}
         </div>
-        <details class="llm-details">
-          <summary>View Individual LLM Responses</summary>
+        `
+            : ''
+        }
+        <details class="llm-details" ${isTweetResult ? 'open' : ''}>
+          <summary>${isTweetResult ? 'Grok Analysis' : 'View Individual LLM Responses'}</summary>
           <div class="llm-responses">
             ${result.llm_responses
               .map((response) => {
@@ -771,14 +1036,28 @@ function createCollapsedResult(job) {
         `
             : ''
         }
+        <div class="share-section" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #27272a;">
+          <button
+            class="share-button-recent"
+            data-job-id="${job.job_id}"
+            style="background: transparent; border: 1px solid #27272a; color: #a1a1aa; padding: 8px 16px; cursor: pointer; font-size: 0.9em; transition: all 0.2s ease;"
+          >
+            📋 Copy Share Link
+          </button>
+        </div>
       </div>
     </details>
   `;
 }
 
 // Initial fetch and poll every 10 seconds.
-fetchRecentResolutions();
-setInterval(fetchRecentResolutions, 10000);
+// Load initial recent resolutions based on current mode
+loadRecentResolutions();
+
+// Poll for new resolutions every 10 seconds
+setInterval(() => {
+  loadRecentResolutions();
+}, 10000);
 
 // Health check monitoring.
 async function checkServiceHealth() {
@@ -844,11 +1123,17 @@ checkServiceHealth();
 // Poll health every 30 seconds.
 setInterval(checkServiceHealth, 30000);
 
-// Fetch and display payment info.
+// Fetch and display payment info, and apply feature flags.
 async function fetchPaymentInfo() {
   try {
     const response = await fetch(`${API_URL}/info`);
     const info = await response.json();
+
+    // Update feature flags
+    if (info.features) {
+      featureFlags = info.features;
+      applyFeatureFlags();
+    }
 
     if (info.payment_address) {
       const paymentInfoEl = document.getElementById('paymentInfo');
@@ -866,5 +1151,109 @@ async function fetchPaymentInfo() {
   }
 }
 
+// Apply feature flags to UI
+function applyFeatureFlags() {
+  // Hide/show tweet analysis mode toggle
+  if (!featureFlags.tweet_analysis) {
+    // Hide tweet mode button
+    if (tweetModeBtn) {
+      tweetModeBtn.style.display = 'none';
+    }
+
+    // Hide tweet filter button
+    const tweetFilterBtn = document.querySelector('.filter-btn[data-filter="tweet"]');
+    if (tweetFilterBtn) {
+      tweetFilterBtn.style.display = 'none';
+    }
+
+    // If currently in tweet mode, switch to fact mode
+    if (currentMode === 'tweet') {
+      updateUIForMode('fact');
+    }
+  } else {
+    // Show tweet mode button
+    if (tweetModeBtn) {
+      tweetModeBtn.style.display = 'inline-block';
+    }
+
+    // Show tweet filter button
+    const tweetFilterBtn = document.querySelector('.filter-btn[data-filter="tweet"]');
+    if (tweetFilterBtn) {
+      tweetFilterBtn.style.display = 'inline-block';
+    }
+  }
+}
+
+// Copy share link to clipboard
+window.copyShareLink = async function (url, event) {
+  try {
+    await window.navigator.clipboard.writeText(url);
+    // Show success feedback
+    const btn = event.target.closest('.share-btn');
+    const originalText = btn.querySelector('.share-text').textContent;
+    btn.querySelector('.share-text').textContent = 'Link Copied!';
+    btn.querySelector('.share-icon').textContent = '✓';
+    btn.style.background = 'rgba(16, 185, 129, 0.1)';
+    btn.style.borderColor = '#10b981';
+    btn.style.color = '#10b981';
+
+    setTimeout(() => {
+      btn.querySelector('.share-text').textContent = originalText;
+      btn.querySelector('.share-icon').textContent = '🔗';
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2000);
+  } catch {
+    showError('Failed to copy link to clipboard');
+  }
+};
+
 // Fetch payment info on page load
 fetchPaymentInfo();
+
+// Feed filter functionality removed - filters are now based on current mode (fact/tweet)
+
+// Handle URL fragment to load specific results (e.g., /#result/job_id)
+async function loadResultFromFragment() {
+  const hash = window.location.hash;
+  const resultMatch = hash.match(/^#result\/([a-zA-Z0-9-]+)$/);
+
+  if (resultMatch) {
+    const jobId = resultMatch[1];
+
+    try {
+      showLoading('Loading fact-check result...');
+
+      const response = await fetch(`${API_URL}/api/v1/query/${jobId}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load result: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.status === 'completed') {
+        displayResult(data);
+        hideLoading();
+        // Scroll to result
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (data.status === 'failed') {
+        throw new Error(data.error || 'Job failed');
+      } else {
+        // Still processing, could poll for it
+        showLoading('Result is still processing...');
+        await pollForResults(jobId);
+      }
+    } catch (error) {
+      hideLoading();
+      showError(`Failed to load result: ${error.message}`);
+    }
+  }
+}
+
+// Load result on page load if URL fragment is present
+loadResultFromFragment();
+
+// Listen for hash changes
+window.addEventListener('hashchange', loadResultFromFragment);

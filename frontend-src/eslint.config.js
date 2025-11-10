@@ -16,6 +16,7 @@ export default [
         setTimeout: 'readonly',
         setInterval: 'readonly',
         fetch: 'readonly',
+        localStorage: 'readonly',
       },
     },
     rules: {

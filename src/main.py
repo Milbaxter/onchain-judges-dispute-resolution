@@ -24,8 +24,10 @@ from src.models import (
     JobStatus,
     OracleQuery,
     OracleResult,
+    TweetAnalysisQuery,
+    TweetAnalysisResult,
 )
-from src.workers import process_oracle_query
+from src.workers import process_oracle_query, process_tweet_analysis
 from src.x402_custom_middleware import require_payment_async_settle
 
 logger = logging.getLogger(__name__)
@@ -128,6 +130,16 @@ async def lifespan(app: FastAPI):
         async def init_agent_async():
             """Initialize agent in background without blocking startup."""
             try:
+                # Define all x402 endpoints to register.
+                base_url = f"https://api.verisage.xyz{app.root_path}/api/v1"
+                x402_endpoints = [
+                    f"{base_url}/query",  # Factual verification endpoint
+                ]
+
+                # Conditionally add tweet analysis endpoint if feature is enabled.
+                if settings.feature_tweet_analysis:
+                    x402_endpoints.append(f"{base_url}/analyze-tweet")
+
                 await initialize_agent(
                     agent0_chain_id=settings.agent0_chain_id,
                     agent0_rpc_url=settings.agent0_rpc_url,
@@ -138,13 +150,13 @@ async def lifespan(app: FastAPI):
                     agent_description=app.description,
                     agent_image="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
                     agent_wallet_address=settings.agent0_wallet_address,
-                    x402_endpoint_url=f"https://api.verisage.xyz{app.root_path}/api/v1/query",
+                    x402_endpoints=x402_endpoints,
                     force_reregister=settings.agent0_force_reregister,
                 )
             except Exception as e:
                 logger.error(f"Agent initialization failed: {e}", exc_info=True)
 
-        # Start agent init as background task to avoid blocking server startup
+        # Start agent init as background task to avoid blocking server startup.
         agent_init_task = asyncio.create_task(init_agent_async())
 
         # Start metadata sync task (single worker only to avoid conflicts).
@@ -308,13 +320,13 @@ if not settings.debug_payments:
     facilitator_config = None
     if settings.environment == "production":
         if settings.facilitator_url:
-            # Use custom facilitator URL
+            # Use custom facilitator URL.
             from x402.facilitator import FacilitatorConfig
 
             facilitator_config = FacilitatorConfig(url=settings.facilitator_url)
             logger.info(f"✓ Using custom facilitator URL: {settings.facilitator_url}")
         else:
-            # Use Coinbase CDP facilitator
+            # Use Coinbase CDP facilitator.
             from cdp.x402 import create_facilitator_config
 
             facilitator_config = create_facilitator_config(
@@ -323,7 +335,7 @@ if not settings.debug_payments:
             )
             logger.info("✓ CDP facilitator configured for production payment verification")
 
-    # Settlement callbacks for async payment processing
+    # Settlement callbacks for async payment processing.
     async def on_settlement_success(request: Request, payment, payment_requirements):
         """Handle successful payment settlement - queue the job for processing."""
         if hasattr(request.state, "job_id") and hasattr(request.state, "query"):
@@ -331,7 +343,7 @@ if not settings.debug_payments:
             query = request.state.query
             logger.info(f"Settlement succeeded - queueing job {job_id} for processing")
 
-            # Enqueue task for background processing
+            # Enqueue task for background processing.
             process_oracle_query(job_id, query)
 
     async def on_settlement_failure(
@@ -342,11 +354,11 @@ if not settings.debug_payments:
             job_id = request.state.job_id
             logger.warning(f"Settlement failed for job {job_id}: {error_reason}")
 
-            # Mark the job as failed with settlement error
+            # Mark the job as failed with settlement error.
             job_store.update_job_error(job_id, "Payment settlement failed")
 
     # Wrap payment middleware to skip OPTIONS requests for CORS.
-    # Using custom async-settle middleware to avoid proxy idle timeout issues
+    # Using custom async-settle middleware to avoid proxy idle timeout issues.
     payment_middleware = require_payment_async_settle(
         path="/api/v1/query",
         price=settings.x402_price,
@@ -377,13 +389,77 @@ if not settings.debug_payments:
         on_settlement_failure=on_settlement_failure,
     )
 
+    # Settlement callbacks for tweet analysis endpoint.
+    async def on_settlement_success_tweet(request: Request, payment, payment_requirements):
+        """Handle successful payment settlement for tweet analysis - queue the job for processing."""
+        if hasattr(request.state, "job_id") and hasattr(request.state, "tweet_url"):
+            job_id = request.state.job_id
+            tweet_url = request.state.tweet_url
+            logger.info(f"Tweet settlement succeeded - queueing job {job_id} for processing")
+
+            # Enqueue task for background processing.
+            process_tweet_analysis(job_id, tweet_url)
+
+    async def on_settlement_failure_tweet(
+        request: Request, payment, payment_requirements, error_reason: str
+    ):
+        """Handle failed payment settlement for tweet analysis - mark the job as failed."""
+        if hasattr(request.state, "job_id"):
+            job_id = request.state.job_id
+            logger.warning(f"Tweet settlement failed for job {job_id}: {error_reason}")
+
+            # Mark the job as failed with settlement error.
+            job_store.update_job_error(job_id, "Payment settlement failed")
+
+    # Conditionally set up tweet analysis middleware (only if feature is enabled).
+    tweet_payment_middleware = None
+    if settings.feature_tweet_analysis:
+        logger.info("Tweet analysis feature enabled - registering payment middleware")
+        tweet_payment_middleware = require_payment_async_settle(
+            path="/api/v1/analyze-tweet",
+            price=settings.x402_tweet_price,
+            pay_to_address=settings.x402_payment_address,
+            network=settings.x402_network,
+            description="X/Twitter Post Credibility Analysis - AI-powered verification of social media content using multiple independent LLM providers. Analyzes factual claims, identifies misinformation, and assesses overall post credibility.",
+            paywall_config=PaywallConfig(
+                app_name="Verisage.xyz",
+                app_logo="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
+            ),
+            input_schema=HTTPInputSchema(
+                body_type="json",
+                body_fields={
+                    "tweet_url": {
+                        "type": "string",
+                        "description": "Twitter/X post URL to analyze (e.g., https://twitter.com/user/status/123456789 or https://x.com/user/status/123456789)",
+                        "minLength": 10,
+                        "maxLength": 512,
+                        "pattern": r"^https?://(twitter\.com|x\.com)/[a-zA-Z0-9_]+/status/[0-9]+.*$",
+                    }
+                },
+                query_params={},
+                header_fields={},
+            ),
+            output_schema=JobResponse.model_json_schema(),
+            facilitator_config=facilitator_config,
+            on_settlement_success=on_settlement_success_tweet,
+            on_settlement_failure=on_settlement_failure_tweet,
+        )
+    else:
+        logger.info("Tweet analysis feature disabled (FEATURE_TWEET_ANALYSIS=false)")
+
     @app.middleware("http")
     async def payment_with_cors(request: Request, call_next):
         """Payment middleware that skips OPTIONS requests for CORS preflight."""
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        response = await payment_middleware(request, call_next)
+        # Route to the appropriate payment middleware based on path.
+        if request.url.path == "/api/v1/query":
+            response = await payment_middleware(request, call_next)
+        elif request.url.path == "/api/v1/analyze-tweet" and tweet_payment_middleware:
+            response = await tweet_payment_middleware(request, call_next)
+        else:
+            return await call_next(request)
 
         # Ensure CORS headers are on 402 responses.
         if response.status_code == 402:
@@ -395,8 +471,8 @@ if not settings.debug_payments:
                 response.headers["Access-Control-Allow-Methods"] = "*"
                 response.headers["Access-Control-Allow-Headers"] = "*"
 
-        # Note: Job creation now happens asynchronously via settlement callbacks
-        # to avoid blocking the response for proxy idle timeout
+        # Note: Job creation now happens asynchronously via settlement callbacks.
+        # to avoid blocking the response for proxy idle timeout.
 
         return response
 
@@ -442,7 +518,6 @@ async def query_oracle(query: OracleQuery, request: Request) -> JobResponse:
     Raises:
         HTTPException: If service is overloaded (queue full)
     """
-    # Check if service is overloaded before accepting new jobs.
     if health_status.get("status") == "unhealthy":
         raise HTTPException(
             status_code=503,
@@ -454,13 +529,11 @@ async def query_oracle(query: OracleQuery, request: Request) -> JobResponse:
             },
         )
 
-    # Extract payment info if available (from x402 middleware).
     payer_address = None
     tx_hash = None
     network = None
 
     try:
-        # Extract payment info from x402 middleware
         if hasattr(request.state, "verify_response"):
             verify_resp = request.state.verify_response
             if hasattr(verify_resp, "payer"):
@@ -471,26 +544,20 @@ async def query_oracle(query: OracleQuery, request: Request) -> JobResponse:
             if hasattr(payment_details, "network"):
                 network = payment_details.network
 
-        # Note: tx_hash is not available from x402 verify response
-        # It would only be available in SettleResponse which happens after settlement
     except Exception as e:
-        # If payment info extraction fails, continue without it.
         logger.warning(f"Failed to extract payment info: {e}", exc_info=True)
 
-    # Create job immediately after payment verification.
-    # Settlement will happen asynchronously in the background.
     job_id, created_at = job_store.create_job(
         query.query,
+        query_type="fact",
         payer_address=payer_address,
         tx_hash=tx_hash,
         network=network,
     )
 
-    # Store job_id and query in request state so settlement callbacks can access them.
     request.state.job_id = job_id
     request.state.query = query.query
 
-    # In debug mode, queue job immediately since there's no settlement to wait for.
     if settings.debug_payments:
         process_oracle_query(job_id, query.query)
 
@@ -500,6 +567,89 @@ async def query_oracle(query: OracleQuery, request: Request) -> JobResponse:
         query=query.query,
         created_at=created_at,
     )
+
+
+# Conditionally register tweet analysis endpoint (only if feature is enabled).
+if settings.feature_tweet_analysis:
+
+    @api_v1.post("/analyze-tweet", response_model=JobResponse, tags=["Oracle (Paid)"])
+    @limiter.limit("50/minute")
+    async def analyze_tweet(query: TweetAnalysisQuery, request: Request) -> JobResponse:
+        """Analyze an X/Twitter post for credibility.
+
+        This endpoint requires payment via the x402 protocol.
+
+        Rate limit: 50 requests per minute per IP (lower than factual queries due to higher cost).
+
+        **How it works:**
+        1. Fetches the tweet content from the provided URL
+        2. Analyzes the post using multiple independent AI providers
+        3. Evaluates factual claims, credibility, and potential misinformation
+        4. Returns aggregated verdict: CREDIBLE, QUESTIONABLE, MISLEADING, or OPINION
+
+        **Important:** Check the `/health` endpoint before submitting. If service is
+        overloaded (status: "unhealthy"), your payment will be accepted but the job
+        will be rejected with HTTP 503.
+
+        Args:
+            query: TweetAnalysisQuery with tweet_url
+            request: FastAPI request object (for payment info)
+
+        Returns:
+            JobResponse with job_id for polling
+
+        Raises:
+            HTTPException: If service is overloaded (queue full)
+        """
+        # Check if service is overloaded.
+        if health_status.get("status") == "unhealthy":
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "Service temporarily overloaded",
+                    "queue_status": health_status.get("queue_status"),
+                    "queued_jobs": health_status.get("queued_jobs"),
+                    "message": "The job queue is currently full. Please try again in a few minutes.",
+                },
+            )
+
+        payer_address = None
+        tx_hash = None
+        network = None
+
+        try:
+            if hasattr(request.state, "verify_response"):
+                verify_resp = request.state.verify_response
+                if hasattr(verify_resp, "payer"):
+                    payer_address = verify_resp.payer
+
+            if hasattr(request.state, "payment_details"):
+                payment_details = request.state.payment_details
+                if hasattr(payment_details, "network"):
+                    network = payment_details.network
+        except Exception as e:
+            logger.warning(f"Failed to extract payment info: {e}", exc_info=True)
+
+        job_id, created_at = job_store.create_job(
+            query.tweet_url,
+            query_type="tweet",
+            payer_address=payer_address,
+            tx_hash=tx_hash,
+            network=network,
+        )
+
+        request.state.job_id = job_id
+        request.state.tweet_url = query.tweet_url
+
+        if settings.debug_payments:
+            process_tweet_analysis(job_id, query.tweet_url)
+
+        return JobResponse(
+            job_id=job_id,
+            status=JobStatus.PENDING,
+            query=query.tweet_url,
+            created_at=created_at,
+        )
 
 
 @api_v1.get("/query/{job_id}", response_model=JobResultResponse, tags=["Oracle"])
@@ -529,12 +679,17 @@ async def get_query_result(job_id: str, request: Request) -> JobResultResponse:
     # Parse result if completed.
     result = None
     if job_data["result_json"]:
-        result = OracleResult.model_validate_json(job_data["result_json"])
+        query_type = job_data.get("query_type", "fact")
+        if query_type == "tweet":
+            result = TweetAnalysisResult.model_validate_json(job_data["result_json"])
+        else:
+            result = OracleResult.model_validate_json(job_data["result_json"])
 
     return JobResultResponse(
         job_id=job_data["id"],
         status=JobStatus(job_data["status"]),
         query=job_data["query"],
+        query_type=job_data.get("query_type", "fact"),
         result=result,
         error=job_data["error"],
         created_at=datetime.fromisoformat(job_data["created_at"]),
@@ -549,7 +704,12 @@ async def get_query_result(job_id: str, request: Request) -> JobResultResponse:
 
 @api_v1.get("/recent", tags=["Public Feed"])
 @limiter.limit("100/minute")
-async def get_recent_jobs(request: Request, limit: int = 5, exclude_uncertain: bool = True):
+async def get_recent_jobs(
+    request: Request,
+    limit: int = 5,
+    exclude_uncertain: bool = True,
+    query_type: str | None = None,
+):
     """Get recently completed jobs (public feed).
 
     Results include cryptographic signatures generated inside the ROFL TEE. The public key
@@ -558,26 +718,36 @@ async def get_recent_jobs(request: Request, limit: int = 5, exclude_uncertain: b
     Args:
         limit: Maximum number of jobs to return (default: 5, max: 20)
         exclude_uncertain: Exclude jobs with uncertain results (default: True)
+        query_type: Filter by query type - 'fact', 'tweet', or None for all (default: None)
 
     Returns:
         List of recent completed jobs with results (including signatures and public keys)
     """
+    # Validate query_type if provided.
+    if query_type and query_type not in ("fact", "tweet"):
+        raise HTTPException(status_code=400, detail="query_type must be 'fact' or 'tweet'")
+
     # Limit to max 20 to prevent abuse.
     limit = min(limit, 20)
 
-    jobs_data = job_store.get_recent_completed_jobs(limit, exclude_uncertain)
+    jobs_data = job_store.get_recent_completed_jobs(limit, exclude_uncertain, query_type)
 
     jobs = []
     for job_data in jobs_data:
         result = None
         if job_data["result_json"]:
-            result = OracleResult.model_validate_json(job_data["result_json"])
+            job_query_type = job_data.get("query_type", "fact")
+            if job_query_type == "tweet":
+                result = TweetAnalysisResult.model_validate_json(job_data["result_json"])
+            else:
+                result = OracleResult.model_validate_json(job_data["result_json"])
 
         jobs.append(
             JobResultResponse(
                 job_id=job_data["id"],
                 status=JobStatus(job_data["status"]),
                 query=job_data["query"],
+                query_type=job_data.get("query_type", "fact"),
                 result=result,
                 error=job_data["error"],
                 created_at=datetime.fromisoformat(job_data["created_at"]),
@@ -609,12 +779,92 @@ async def health_check(request: Request):
 @app.get("/info", tags=["System"])
 @limiter.limit("100/minute")
 async def get_info(request: Request):
-    """Get service information including payment address and network."""
+    """Get service information including payment address, network, and feature flags."""
     return {
         "payment_address": settings.x402_payment_address,
         "network": settings.x402_network,
         "price": settings.x402_price,
+        "features": {
+            "tweet_analysis": settings.feature_tweet_analysis,
+        },
     }
+
+
+@app.get("/results_social/{job_id}", response_class=HTMLResponse, include_in_schema=False)
+@limiter.limit("100/minute")
+async def get_shareable_result(job_id: str, request: Request):
+    """Get shareable fact-check result with Open Graph meta tags for social media preview."""
+    # Fetch the job result.
+    job_data = job_store.get_job(job_id)
+
+    if job_data is None or job_data["status"] != "completed":
+        raise HTTPException(status_code=404, detail="Result not found or not yet completed")
+
+    # Parse result.
+    query_type = job_data.get("query_type", "fact")
+    import html
+
+    if query_type == "tweet":
+        result = TweetAnalysisResult.model_validate_json(job_data["result_json"])
+        verdict = result.final_verdict.value
+        query_display = result.tweet.url
+        verdict_emoji = {
+            "credible": "✓",
+            "questionable": "?",
+            "misleading": "⚠",
+            "opinion": "💭",
+        }.get(verdict, "?")
+        og_title = f"X Post Fact-Check: {verdict.upper()} ({verdict_emoji})"
+        # Truncate and sanitize analysis summary to prevent XSS.
+        analysis_excerpt = result.analysis_summary[:150].replace("\n", " ").strip()
+        og_description = f"Verisage.xyz verified this post as {verdict.upper()} with {int(result.final_confidence * 100)}% confidence. {analysis_excerpt}..."
+    else:
+        result = OracleResult.model_validate_json(job_data["result_json"])
+        decision = result.final_decision.value
+        query_display = result.query
+        decision_emoji = {"yes": "✓", "no": "✗", "uncertain": "?"}.get(decision, "?")
+        og_title = f"Fact Check: {decision.upper()} ({decision_emoji})"
+        og_description = f'Verisage.xyz verified "{query_display}" as {decision.upper()} with {int(result.final_confidence * 100)}% confidence.'
+
+    # Escape all user/LLM-generated content to prevent XSS.
+    og_title_escaped = html.escape(og_title)
+    og_description_escaped = html.escape(og_description)
+    result_url_escaped = html.escape(f"{str(request.base_url).rstrip('/')}/results_social/{job_id}")
+    job_id_escaped = html.escape(job_id)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{og_title_escaped} - Verisage.xyz</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{result_url_escaped}">
+    <meta property="og:title" content="{og_title_escaped}">
+    <meta property="og:description" content="{og_description_escaped}">
+    <meta property="og:site_name" content="Verisage.xyz">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{result_url_escaped}">
+    <meta property="twitter:title" content="{og_title_escaped}">
+    <meta property="twitter:description" content="{og_description_escaped}">
+
+    <!-- Redirect to main page with job_id in URL fragment -->
+    <meta http-equiv="refresh" content="0; url={html.escape(settings.frontend_url)}/#result/{job_id_escaped}">
+    <script>
+        // Immediate redirect for browsers that support it
+        window.location.href = "{html.escape(settings.frontend_url)}/#result/{job_id_escaped}";
+    </script>
+</head>
+<body>
+    <p>Redirecting to result... <a href="{html.escape(settings.frontend_url)}/#result/{job_id_escaped}">Click here if not redirected</a></p>
+</body>
+</html>"""
+
+    return HTMLResponse(content=html_content)
 
 
 if __name__ == "__main__":

@@ -65,18 +65,13 @@ def process_oracle_query(job_id: str, query: str):
     logger.info(f"Processing job {job_id}: {query}")
 
     try:
-        # Update status to processing.
         job_store.update_job_status(job_id, JobStatus.PROCESSING)
 
-        # Lazily load the oracle to defer provider validation until a job runs.
         oracle = get_oracle()
-        # Run async oracle resolution via asyncio.run because Huey tasks are synchronous.
         result = asyncio.run(oracle.resolve_dispute(query))
 
-        # Sign the result (production only).
         signed_result = signing_service.sign_result(result)
 
-        # Store the signed result.
         job_store.update_job_result(job_id, signed_result)
 
         elapsed_time = time.time() - start_time
@@ -86,9 +81,47 @@ def process_oracle_query(job_id: str, query: str):
         )
 
     except Exception as e:
-        # Handle any errors.
         elapsed_time = time.time() - start_time
         error_msg = f"Failed to process query: {str(e)}"
+        logger.error(f"Job {job_id} failed after {elapsed_time:.2f}s: {error_msg}", exc_info=True)
+        job_store.update_job_error(job_id, error_msg)
+
+
+@huey.task(retries=2, retry_delay=60)
+def process_tweet_analysis(job_id: str, tweet_url: str):
+    """Process a tweet credibility analysis in the background.
+
+    Retries up to 2 times with 60 second delay between attempts.
+
+    Args:
+        job_id: The job identifier
+        tweet_url: The tweet URL to analyze
+    """
+    import asyncio
+    import time
+
+    start_time = time.time()
+    logger.info(f"Processing tweet analysis job {job_id}: {tweet_url}")
+
+    try:
+        job_store.update_job_status(job_id, JobStatus.PROCESSING)
+
+        oracle = get_oracle()
+        result = asyncio.run(oracle.analyze_tweet(tweet_url))
+
+        signed_result = signing_service.sign_result(result)
+
+        job_store.update_job_result(job_id, signed_result)
+
+        elapsed_time = time.time() - start_time
+        logger.info(
+            f"Job {job_id} completed successfully in {elapsed_time:.2f}s "
+            f"(verdict: {result.final_verdict.value}, confidence: {result.final_confidence:.2f})"
+        )
+
+    except Exception as e:
+        elapsed_time = time.time() - start_time
+        error_msg = f"Failed to process tweet analysis: {str(e)}"
         logger.error(f"Job {job_id} failed after {elapsed_time:.2f}s: {error_msg}", exc_info=True)
         job_store.update_job_error(job_id, error_msg)
 

@@ -1,5 +1,16 @@
 SHELL := /bin/bash
 
+# Define a shell function to generate temp compose file with build context
+# Usage: $(call generate_temp_compose,image_tag)
+define generate_temp_compose
+PROJECT_DIR=$$(pwd); \
+TMP_COMPOSE=$$(mktemp); \
+sed -e 's/@sha256:[a-f0-9]\{64\}//g' \
+    -e "s|ghcr.io/ptrus/verisage.xyz:latest|$(1)|g" \
+    -e "/image: $(shell echo '$(1)' | sed 's/[\/&]/\\&/g')/a\\    build:\\n      context: $$PROJECT_DIR\\n      dockerfile: Dockerfile" \
+    compose.yaml > "$$TMP_COMPOSE"
+endef
+
 test-unit:
 	@echo "Running unit tests..."
 	uv run pytest tests/unit/ -v
@@ -8,12 +19,8 @@ test-e2e:
 	@echo "Running E2E tests..."
 	@echo "Preparing compose file for local testing..."
 	@# Create temporary compose file without SHA256 digests, use testing tag, and add build context
-	@TMP_COMPOSE=$$(mktemp); \
-		sed -e 's/@sha256:[a-f0-9]\{64\}//g' \
-		    -e 's|ghcr.io/ptrusr/verisage.xyz:latest|ghcr.io/ptrusr/verisage.xyz:testing|g' \
-		    -e '/image: ghcr.io\/ptrus\/verisage.xyz:testing/a\    build:\n      context: .\n      dockerfile: Dockerfile' \
-		    compose.yaml > "$$TMP_COMPOSE"; \
-		COMPOSE_FILE="$$TMP_COMPOSE" bash -c 'cd tests/e2e && ./test-e2e.sh'; \
+	@$(call generate_temp_compose,ghcr.io/ptrus/verisage.xyz:testing); \
+		COMPOSE_FILE="$$TMP_COMPOSE" bash -c 'cd tests/e2e && ./test-e2e.sh && ./test-tweet-e2e.sh'; \
 		TEST_EXIT=$$?; \
 		rm -f "$$TMP_COMPOSE"; \
 		exit $$TEST_EXIT
@@ -22,11 +29,7 @@ test-e2e-payments:
 	@echo "Running E2E payment tests..."
 	@echo "Preparing compose file for local testing..."
 	@# Create temporary compose file without SHA256 digests, use testing tag, and add build context
-	@TMP_COMPOSE=$$(mktemp); \
-		sed -e 's/@sha256:[a-f0-9]\{64\}//g' \
-		    -e 's|ghcr.io/ptrusr/verisage.xyz:latest|ghcr.io/ptrusr/verisage.xyz:testing|g' \
-		    -e '/image: ghcr.io\/ptrus\/verisage.xyz:testing/a\    build:\n      context: .\n      dockerfile: Dockerfile' \
-		    compose.yaml > "$$TMP_COMPOSE"; \
+	@$(call generate_temp_compose,ghcr.io/ptrus/verisage.xyz:testing); \
 		COMPOSE_FILE="$$TMP_COMPOSE" bash -c 'cd tests/e2e && ./test-e2e-payments.sh'; \
 		TEST_EXIT=$$?; \
 		rm -f "$$TMP_COMPOSE"; \
@@ -46,8 +49,24 @@ format:
 	cd frontend-src && npm run format
 
 dev-backend:
-	@echo "Starting backend with docker compose (server + worker)..."
-	docker compose --env-file .env.testnet up
+	@echo "Starting backend with docker compose (server + worker) with fresh build..."
+	@echo "Preparing compose file for local development..."
+	@# Create temporary compose file without SHA256 digests, use testing tag, and add build context
+	@$(call generate_temp_compose,ghcr.io/ptrus/verisage.xyz:testing); \
+		echo "Building and starting services..."; \
+		docker compose -f "$$TMP_COMPOSE" --env-file .env.local up --build -d; \
+		rm -f "$$TMP_COMPOSE"; \
+		echo ""; \
+		echo "✅ Backend services running!"; \
+		echo "   - API: http://localhost:8000"; \
+		echo "   - API Docs: http://localhost:8000/docs"; \
+		echo ""; \
+		echo "View logs with:"; \
+		echo "   docker compose logs -f server"; \
+		echo "   docker compose logs -f worker"; \
+		echo ""; \
+		echo "Stop with:"; \
+		echo "   docker compose down"
 
 dev-frontend:
 	@echo "Starting frontend dev server..."
@@ -56,7 +75,7 @@ dev-frontend:
 dev:
 	@echo "Starting both backend and frontend..."
 	@echo "Run 'make dev-backend' in one terminal and 'make dev-frontend' in another"
-	@echo "Or use: docker compose --env-file .env.testnet up -d && cd frontend-src && VITE_API_URL=http://localhost:8000 npm run dev"
+	@echo "Or use: make dev-backend && make dev-frontend"
 
 build-docker:
 	@echo "Building Docker image..."

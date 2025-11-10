@@ -60,6 +60,7 @@ class JobStore:
                     id TEXT PRIMARY KEY CHECK(length(id) = 36),
                     status TEXT NOT NULL,
                     query TEXT NOT NULL CHECK(length(query) <= 2048),
+                    query_type TEXT DEFAULT 'fact' CHECK(query_type IN ('fact', 'tweet')),
                     result_json TEXT,
                     error TEXT,
                     created_at TEXT NOT NULL,
@@ -75,6 +76,14 @@ class JobStore:
                 CREATE INDEX IF NOT EXISTS idx_created_at ON jobs(created_at)
             """)
 
+            # Migration: Add query_type column if it doesn't exist (for existing databases).
+            cursor.execute("PRAGMA table_info(jobs)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "query_type" not in columns:
+                cursor.execute("""
+                    ALTER TABLE jobs ADD COLUMN query_type TEXT DEFAULT 'fact' CHECK(query_type IN ('fact', 'tweet'))
+                """)
+
             # Create table for storing ROFL metadata shared between API and workers.
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS rofl_metadata (
@@ -87,6 +96,7 @@ class JobStore:
     def create_job(
         self,
         query: str,
+        query_type: str = "fact",
         payer_address: str | None = None,
         tx_hash: str | None = None,
         network: str | None = None,
@@ -95,6 +105,7 @@ class JobStore:
 
         Args:
             query: The oracle query to process
+            query_type: Type of query - 'fact' or 'tweet' (default: 'fact')
             payer_address: Address of the payer (if payment was made)
             tx_hash: Transaction hash of the payment
             network: Network the payment was made on
@@ -108,13 +119,14 @@ class JobStore:
         with self._cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO jobs (id, status, query, created_at, payer_address, tx_hash, network)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (id, status, query, query_type, created_at, payer_address, tx_hash, network)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
                     JobStatus.PENDING.value,
                     query,
+                    query_type,
                     created_at.isoformat(),
                     payer_address,
                     tx_hash,
@@ -129,6 +141,7 @@ class JobStore:
         job_id: str,
         query: str,
         created_at: datetime,
+        query_type: str = "fact",
         payer_address: str | None = None,
         tx_hash: str | None = None,
         network: str | None = None,
@@ -143,6 +156,7 @@ class JobStore:
             job_id: Pre-generated UUID for the job
             query: The oracle query to process
             created_at: Pre-generated creation timestamp
+            query_type: Type of query - 'fact' or 'tweet' (default: 'fact')
             payer_address: Address of the payer (if payment was made)
             tx_hash: Transaction hash of the payment
             network: Network the payment was made on
@@ -150,13 +164,14 @@ class JobStore:
         with self._cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO jobs (id, status, query, created_at, payer_address, tx_hash, network)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (id, status, query, query_type, created_at, payer_address, tx_hash, network)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
                     JobStatus.PENDING.value,
                     query,
+                    query_type,
                     created_at.isoformat(),
                     payer_address,
                     tx_hash,
@@ -176,7 +191,7 @@ class JobStore:
         with self._cursor(row_factory=sqlite3.Row) as cursor:
             cursor.execute(
                 """
-                SELECT id, status, query, result_json, error, created_at, completed_at,
+                SELECT id, status, query, query_type, result_json, error, created_at, completed_at,
                        payer_address, tx_hash, network
                 FROM jobs
                 WHERE id = ?
@@ -193,6 +208,7 @@ class JobStore:
             "id": row["id"],
             "status": row["status"],
             "query": row["query"],
+            "query_type": row["query_type"],
             "result_json": row["result_json"],
             "error": row["error"],
             "created_at": row["created_at"],
@@ -309,44 +325,50 @@ class JobStore:
         return deleted
 
     def get_recent_completed_jobs(
-        self, limit: int = 5, exclude_uncertain: bool = True
+        self, limit: int = 5, exclude_uncertain: bool = True, query_type: str | None = None
     ) -> list[dict]:
         """Get recently completed jobs.
 
         Args:
             limit: Maximum number of jobs to return (default: 5)
             exclude_uncertain: Exclude jobs with uncertain final_decision (default: True)
+            query_type: Filter by query type - 'fact', 'tweet', or None for all (default: None)
 
         Returns:
             List of job data dictionaries, most recent first
         """
         with self._cursor(row_factory=sqlite3.Row) as cursor:
+            # Build the query dynamically based on filters.
+            query_parts = [
+                "SELECT id, status, query, query_type, result_json, error, created_at, completed_at,",
+                "       payer_address, tx_hash, network",
+                "FROM jobs",
+                "WHERE status = ?",
+            ]
+            params = [JobStatus.COMPLETED.value]
+
+            if query_type:
+                query_parts.append("AND query_type = ?")
+                params.append(query_type)
+
             if exclude_uncertain:
-                # Filter out uncertain results using JSON extraction
-                cursor.execute(
-                    """
-                    SELECT id, status, query, result_json, error, created_at, completed_at,
-                           payer_address, tx_hash, network
-                    FROM jobs
-                    WHERE status = ?
-                    AND (result_json IS NULL OR json_extract(result_json, '$.final_decision') != 'uncertain')
-                    ORDER BY completed_at DESC
-                    LIMIT ?
-                    """,
-                    (JobStatus.COMPLETED.value, limit),
+                # Filter out uncertain results using JSON extraction.
+                # For facts: check final_decision != 'uncertain'.
+                # For tweets: check final_verdict != 'uncertain'.
+                # Use OR since each job type has only one of these fields.
+                query_parts.append(
+                    "AND (result_json IS NULL OR "
+                    "(json_extract(result_json, '$.final_decision') IS NOT NULL "
+                    "AND json_extract(result_json, '$.final_decision') != 'uncertain') OR "
+                    "(json_extract(result_json, '$.final_verdict') IS NOT NULL "
+                    "AND json_extract(result_json, '$.final_verdict') != 'uncertain'))"
                 )
-            else:
-                cursor.execute(
-                    """
-                    SELECT id, status, query, result_json, error, created_at, completed_at,
-                           payer_address, tx_hash, network
-                    FROM jobs
-                    WHERE status = ?
-                    ORDER BY completed_at DESC
-                    LIMIT ?
-                    """,
-                    (JobStatus.COMPLETED.value, limit),
-                )
+
+            query_parts.append("ORDER BY completed_at DESC")
+            query_parts.append("LIMIT ?")
+            params.append(limit)
+
+            cursor.execute("\n".join(query_parts), tuple(params))
 
             rows = cursor.fetchall()
 
@@ -355,6 +377,7 @@ class JobStore:
                 "id": row["id"],
                 "status": row["status"],
                 "query": row["query"],
+                "query_type": row["query_type"],
                 "result_json": row["result_json"],
                 "error": row["error"],
                 "created_at": row["created_at"],
@@ -390,7 +413,7 @@ class JobStore:
             rows = cursor.fetchall()
 
         total = len(rows)
-        # Only count failures that are NOT payment settlement failures
+        # Only count failures that are NOT payment settlement failures.
         failed = sum(
             1
             for row in rows

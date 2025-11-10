@@ -3,9 +3,13 @@
 import hashlib
 import json
 import logging
+from typing import TypeVar
 
 from src.config import settings
-from src.models import OracleResult
+from src.models import OracleResult, TweetAnalysisResult
+
+# Type variable for result types that can be signed.
+ResultType = TypeVar("ResultType", OracleResult, TweetAnalysisResult)
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +103,11 @@ class SigningService:
             logger.error("coincurve library not installed, cannot derive public key")
             raise
 
-    def sign_result(self, result: OracleResult) -> OracleResult:
-        """Sign an oracle result with ROFL TEE key.
+    def sign_result(self, result: ResultType) -> ResultType:
+        """Sign an oracle or tweet analysis result with ROFL TEE key.
 
         Args:
-            result: The oracle result to sign
+            result: The result to sign (OracleResult or TweetAnalysisResult)
 
         Returns:
             Result with signature and public key fields populated

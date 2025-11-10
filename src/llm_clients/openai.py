@@ -39,7 +39,7 @@ class OpenAIClient(BaseLLMClient):
                 "Content-Type": "application/json",
             }
 
-            # Responses API uses "instructions" and "input" instead of "messages"
+            # Responses API uses "instructions" and "input" instead of "messages".
             payload = {
                 "model": self.model,
                 "tools": self.tools,
@@ -52,8 +52,8 @@ class OpenAIClient(BaseLLMClient):
                 response.raise_for_status()
                 data = response.json()
 
-            # Responses API returns content in output array
-            # Find the message object and extract the text
+            # Responses API returns content in output array.
+            # Find the message object and extract the text.
             raw_response = ""
             for item in data.get("output", []):
                 if item.get("type") == "message" and item.get("status") == "completed":
@@ -74,7 +74,7 @@ class OpenAIClient(BaseLLMClient):
             )
 
         except httpx.HTTPStatusError as e:
-            # Get the error details from the response
+            # Get the error details from the response.
             error_detail = e.response.text if hasattr(e, "response") else str(e)
             return LLMResponse(
                 provider=self.provider_name,

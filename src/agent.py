@@ -76,7 +76,7 @@ async def initialize_agent(
     agent_description: str,
     agent_image: str,
     agent_wallet_address: str | None,
-    x402_endpoint_url: str,
+    x402_endpoints: list[str],
     force_reregister: bool = False,
 ) -> tuple[object | None, object | None]:
     """Initialize Agent0 SDK and register agent.
@@ -91,7 +91,7 @@ async def initialize_agent(
         agent_description: Agent description
         agent_image: URL to agent image/logo
         agent_wallet_address: Optional wallet address for receiving payments
-        x402_endpoint_url: x402 payment endpoint URL
+        x402_endpoints: List of x402 payment endpoint URLs to register
         force_reregister: Force new agent registration (ignore existing agent ID)
 
     Returns:
@@ -151,15 +151,16 @@ async def initialize_agent(
         # Enable x402 payment support.
         initialized_agent.setX402Support(True)
 
-        # Register x402 endpoint as A2A endpoint.
-        logger.info(f"Registering x402 endpoint: {x402_endpoint_url}")
-        initialized_agent.setA2A(x402_endpoint_url, version="1.0", auto_fetch=False)
+        # Register all x402 endpoints as A2A endpoints.
+        for endpoint_url in x402_endpoints:
+            logger.info(f"Registering x402 endpoint: {endpoint_url}")
+            initialized_agent.setA2A(endpoint_url, version="1.0", auto_fetch=False)
 
         # Add metadata (optional key-value pairs for discovery).
         initialized_agent.setMetadata(
             {
                 "service_type": "oracle",
-                "capabilities": "fact-verification,multi-llm-consensus,cryptographic-signing",
+                "capabilities": "fact-verification,tweet-analysis,multi-llm-consensus,cryptographic-signing",
                 "tee_platform": "oasis-rofl",
             }
         )
