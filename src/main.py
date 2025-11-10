@@ -845,12 +845,16 @@ async def get_shareable_result(job_id: str, request: Request):
     <meta property="og:title" content="{og_title_escaped}">
     <meta property="og:description" content="{og_description_escaped}">
     <meta property="og:site_name" content="Verisage.xyz">
+    <meta property="og:image" content="{html.escape(settings.frontend_url)}/assets/logo.png">
+    <meta property="og:image:width" content="424">
+    <meta property="og:image:height" content="476">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{result_url_escaped}">
     <meta property="twitter:title" content="{og_title_escaped}">
     <meta property="twitter:description" content="{og_description_escaped}">
+    <meta property="twitter:image" content="{html.escape(settings.frontend_url)}/assets/logo.png">
 
     <!-- Redirect to main page with job_id in URL fragment -->
     <meta http-equiv="refresh" content="0; url={html.escape(settings.frontend_url)}/#result/{job_id_escaped}">

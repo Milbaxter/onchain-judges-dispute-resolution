@@ -120,6 +120,12 @@ tweetModeBtn.addEventListener('click', () => {
 // Check URL hash for deep linking
 function loadModeFromURL() {
   const hash = window.location.hash.substring(1); // Remove #
+
+  // Don't override if this is a result link
+  if (hash.startsWith('result/')) {
+    return true; // Keep the result hash intact
+  }
+
   if (hash === 'tweet' || hash === 'analyze-tweet') {
     updateUIForMode('tweet');
     return true;
@@ -1061,9 +1067,9 @@ function createCollapsedResult(job) {
 // Load initial recent resolutions based on current mode
 loadRecentResolutions();
 
-// Poll for new resolutions every 10 seconds
+// Poll for new resolutions every 10 seconds (incremental update, doesn't clear)
 setInterval(() => {
-  loadRecentResolutions();
+  fetchRecentResolutions(currentMode);
 }, 10000);
 
 // Health check monitoring.
