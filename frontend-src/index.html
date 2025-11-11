@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="twitter:widgets:csp" content="on" />
     <title>Verisage.xyz - Multi-LLM Oracle</title>
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1177,8 +1178,15 @@
       }
 
       /* Twitter embed styling overrides */
-      .tweet-embed-container .twitter-tweet {
+      .tweet-embed-container .twitter-tweet-rendered {
         margin: 0 auto !important;
+        max-width: 650px !important;
+        width: 100% !important;
+      }
+
+      .tweet-embed-container iframe {
+        max-height: 400px !important;
+        overflow: hidden !important;
       }
 
       /* Footer */

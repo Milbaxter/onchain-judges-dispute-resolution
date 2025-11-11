@@ -487,6 +487,14 @@ function waitForTwitterWidgets() {
 
 // Helper function to render embedded tweet
 async function renderTweetEmbed(tweetUrl, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Check if already rendered (contains iframe)
+  if (container.querySelector('iframe')) {
+    return; // Already rendered, don't re-render
+  }
+
   // Create the Twitter embed HTML
   const embedHtml = `
     <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
@@ -494,18 +502,30 @@ async function renderTweetEmbed(tweetUrl, containerId) {
     </blockquote>
   `;
 
-  // Insert the HTML
-  const container = document.getElementById(containerId);
-  if (container) {
-    container.innerHTML = embedHtml;
+  // Clear and insert the HTML
+  container.innerHTML = embedHtml;
 
-    // Wait for Twitter widgets library to load and then render
-    try {
-      const widgets = await waitForTwitterWidgets();
-      widgets.load(container);
-    } catch (error) {
-      console.error('Failed to load Twitter widgets:', error);
+  // Wait for Twitter widgets library to load and then render
+  try {
+    const widgets = await waitForTwitterWidgets();
+    // Use createTweet instead of load for better control
+    const blockquote = container.querySelector('blockquote');
+    if (blockquote) {
+      // Clear the container and create tweet directly
+      container.innerHTML = '';
+      await widgets.createTweet(
+        tweetUrl.split('/status/')[1].split('?')[0], // Extract tweet ID
+        container,
+        {
+          theme: 'dark',
+          dnt: true,
+          width: 650,
+          height: 400,
+        }
+      );
     }
+  } catch (error) {
+    console.error('Failed to load Twitter widgets:', error);
   }
 }
 
