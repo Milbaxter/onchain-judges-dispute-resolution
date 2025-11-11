@@ -519,8 +519,6 @@ async function renderTweetEmbed(tweetUrl, containerId) {
         {
           theme: 'dark',
           dnt: true,
-          width: 650,
-          height: 400,
         }
       );
     }
