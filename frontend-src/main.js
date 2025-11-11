@@ -624,8 +624,7 @@ function displayResult(jobData) {
         isTweetResult
           ? `
       <div class="tweet-embed-container">
-        <div style="width: 100%; max-width: 550px;">
-          <h4>X Post</h4>
+        <div style="width: 100%; max-width: 700px;">
           <div id="tweet-embed-${jobData.job_id}"></div>
         </div>
       </div>
@@ -1101,8 +1100,7 @@ function createCollapsedResult(job) {
           isTweetResult && result.tweet?.url
             ? `
         <div class="tweet-embed-container">
-          <div style="width: 100%; max-width: 550px;">
-            <h4>X Post</h4>
+          <div style="width: 100%; max-width: 700px;">
             <div id="tweet-embed-recent-${job.job_id}"></div>
           </div>
         </div>
