@@ -460,6 +460,27 @@ async function pollForResults(jobId) {
   }
 }
 
+// Helper function to render embedded tweet
+function renderTweetEmbed(tweetUrl, containerId) {
+  // Create the Twitter embed HTML
+  const embedHtml = `
+    <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
+      <a href="${escapeHtml(tweetUrl)}"></a>
+    </blockquote>
+  `;
+
+  // Insert the HTML
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = embedHtml;
+
+    // Trigger Twitter widget rendering
+    if (window.twttr && window.twttr.widgets) {
+      window.twttr.widgets.load(container);
+    }
+  }
+}
+
 // Display result.
 function displayResult(jobData) {
   const result = jobData.result;
@@ -551,6 +572,19 @@ function displayResult(jobData) {
         <p class="share-note">Share this fact-check result on social media</p>
       </div>
 
+      ${
+        isTweetResult
+          ? `
+      <div class="tweet-embed-container">
+        <div style="width: 100%; max-width: 550px;">
+          <h4>X Post</h4>
+          <div id="tweet-embed-${jobData.job_id}"></div>
+        </div>
+      </div>
+      `
+          : ''
+      }
+
       <div class="final-decision ${decision}">
         <h4>Final ${isTweetResult ? 'Verdict' : 'Decision'}: ${decision.toUpperCase()}</h4>
         <div class="confidence-bar">
@@ -611,6 +645,11 @@ function displayResult(jobData) {
 
   resultContent.innerHTML = html;
   resultSection.classList.add('active');
+
+  // Render tweet embed if this is a tweet result
+  if (isTweetResult && result.tweet?.url) {
+    renderTweetEmbed(result.tweet.url, `tweet-embed-${jobData.job_id}`);
+  }
 }
 
 // Helper functions.
@@ -915,6 +954,27 @@ function fetchRecentResolutions(queryType = null) {
     });
 }
 
+// Event delegation for rendering tweet embeds when details are opened
+document.addEventListener('toggle', (e) => {
+  if (e.target.classList.contains('recent-result') && e.target.open) {
+    const jobId = e.target.getAttribute('data-job-id');
+    const resultType = e.target.getAttribute('data-type');
+
+    // Only render tweet embed for tweet type results
+    if (resultType === 'tweet' && jobId) {
+      // Find the tweet URL from the query text
+      const queryText = e.target.querySelector('.query-text');
+      if (queryText) {
+        const tweetUrl = queryText.textContent.trim();
+        // Check if it looks like a tweet URL
+        if (tweetUrl.includes('x.com') || tweetUrl.includes('twitter.com')) {
+          renderTweetEmbed(tweetUrl, `tweet-embed-recent-${jobId}`);
+        }
+      }
+    }
+  }
+}, true);
+
 function createCollapsedResult(job) {
   if (!job.result) return '';
 
@@ -982,6 +1042,18 @@ function createCollapsedResult(job) {
                 : ''
             }
           </div>
+        `
+            : ''
+        }
+        ${
+          isTweetResult && result.tweet?.url
+            ? `
+        <div class="tweet-embed-container">
+          <div style="width: 100%; max-width: 550px;">
+            <h4>X Post</h4>
+            <div id="tweet-embed-recent-${job.job_id}"></div>
+          </div>
+        </div>
         `
             : ''
         }
