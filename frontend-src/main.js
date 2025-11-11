@@ -460,8 +460,33 @@ async function pollForResults(jobId) {
   }
 }
 
+// Helper function to wait for Twitter widgets library to load
+function waitForTwitterWidgets() {
+  return new Promise((resolve) => {
+    if (window.twttr && window.twttr.widgets) {
+      resolve(window.twttr.widgets);
+    } else {
+      // Poll for twttr to be available
+      const checkInterval = setInterval(() => {
+        if (window.twttr && window.twttr.widgets) {
+          clearInterval(checkInterval);
+          resolve(window.twttr.widgets);
+        }
+      }, 100);
+
+      // Also listen for the Twitter widgets load event
+      window.addEventListener('load', () => {
+        if (window.twttr && window.twttr.widgets) {
+          clearInterval(checkInterval);
+          resolve(window.twttr.widgets);
+        }
+      });
+    }
+  });
+}
+
 // Helper function to render embedded tweet
-function renderTweetEmbed(tweetUrl, containerId) {
+async function renderTweetEmbed(tweetUrl, containerId) {
   // Create the Twitter embed HTML
   const embedHtml = `
     <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
@@ -474,9 +499,12 @@ function renderTweetEmbed(tweetUrl, containerId) {
   if (container) {
     container.innerHTML = embedHtml;
 
-    // Trigger Twitter widget rendering
-    if (window.twttr && window.twttr.widgets) {
-      window.twttr.widgets.load(container);
+    // Wait for Twitter widgets library to load and then render
+    try {
+      const widgets = await waitForTwitterWidgets();
+      widgets.load(container);
+    } catch (error) {
+      console.error('Failed to load Twitter widgets:', error);
     }
   }
 }
