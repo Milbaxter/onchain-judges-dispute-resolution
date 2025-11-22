@@ -994,6 +994,137 @@
         background: rgba(16, 185, 129, 0.05);
       }
 
+      /* Tab Navigation */
+      .tab-navigation {
+        display: flex;
+        gap: 0;
+        margin-bottom: 30px;
+        border: 1px solid #27272a;
+        background: transparent;
+        overflow: hidden;
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 14px 24px;
+        background: transparent;
+        border: none;
+        color: #71717a;
+        font-size: 0.9em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.02);
+        color: #a1a1aa;
+      }
+
+      .tab-btn.active {
+        color: #e4e4e7;
+        border-bottom-color: #10b981;
+        background: rgba(16, 185, 129, 0.05);
+      }
+
+      /* Tab Content */
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* About Tab Content */
+      .about-content {
+        color: #d4d4d8;
+        line-height: 1.8;
+      }
+
+      .about-content h1 {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-size: 2.5em;
+        font-weight: 600;
+        margin-bottom: 30px;
+        color: #e4e4e7;
+        letter-spacing: -0.02em;
+      }
+
+      .about-content h2 {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.5em;
+        font-weight: 600;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        color: #e4e4e7;
+      }
+
+      .about-content h3 {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.2em;
+        font-weight: 600;
+        margin-top: 30px;
+        margin-bottom: 16px;
+        color: #d4d4d8;
+      }
+
+      .about-content p {
+        margin-bottom: 16px;
+        font-size: 0.95em;
+      }
+
+      .about-content ul,
+      .about-content ol {
+        margin-bottom: 20px;
+        padding-left: 24px;
+      }
+
+      .about-content li {
+        margin-bottom: 8px;
+        font-size: 0.95em;
+      }
+
+      .about-content strong {
+        color: #e4e4e7;
+        font-weight: 600;
+      }
+
+      .about-content hr {
+        border: none;
+        border-top: 1px solid #27272a;
+        margin: 40px 0;
+      }
+
+      .about-content blockquote {
+        border-left: 3px solid #10b981;
+        padding-left: 20px;
+        margin: 24px 0;
+        color: #a1a1aa;
+        font-style: italic;
+      }
+
+      .about-content blockquote p {
+        margin-bottom: 8px;
+      }
+
+      .about-content code {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 6px;
+        border-radius: 2px;
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #10b981;
+      }
+
+      .about-content em {
+        font-style: italic;
+        color: #d4d4d8;
+      }
+
       /* Feed Filters */
       .feed-filters {
         display: flex;
@@ -1140,12 +1271,20 @@
           <img src="/logo.svg" alt="Permissionless AI Court Logo" class="header-logo" />
           <h1>Permissionless AI Court</h1>
         </div>
-        <p class="subtitle">AI judges for dispute resolution</p>
+        <p class="subtitle">Justice as an API</p>
       </header>
 
       <main>
-        <!-- Query Form. -->
-        <div id="querySection" class="query-section">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+          <button class="tab-btn active" data-tab="query">Query</button>
+          <button class="tab-btn" data-tab="about">About</button>
+        </div>
+
+        <!-- Query Tab Content -->
+        <div id="queryTab" class="tab-content active">
+          <!-- Query Form. -->
+          <div id="querySection" class="query-section">
 
           <div class="info-box" id="infoBox">
             <p id="infoText">
@@ -1197,6 +1336,82 @@
           </form>
 
           <div id="errorContainer"></div>
+          </div>
+        </div>
+
+        <!-- About Tab Content -->
+        <div id="aboutTab" class="tab-content">
+          <div class="about-content">
+            <h1>Permissionless AI Court: Justice as an API</h1>
+
+            <h2>The Pain Point: The "Justice Gap"</h2>
+            <p>The digital economy is stuck between two extremes:</p>
+
+            <ul>
+              <li><strong>Traditional Courts:</strong> Too slow and expensive for a $500 dispute.</li>
+              <li><strong>Smart Contracts:</strong> Blind. Code can calculate math, but it can't judge if a logo design is "good" or "bad."</li>
+            </ul>
+
+            <p><strong>The Solution:</strong> A multi-model arbitration layer. We aggregate the judgment of top-tier LLMs (Claude, Gemini, OpenAI, Perplexity, Grok) to resolve disputes instantly.</p>
+
+            <hr>
+
+            <h2>Use Case 1: Freelance Marketplaces</h2>
+            <p><strong>The Problem:</strong> "Scope Creep" and subjective disputes.</p>
+
+            <blockquote>
+              <p><strong>Example:</strong> A client refuses to pay a developer, claiming the work is "buggy."</p>
+              <p><strong>Without AI Court:</strong> Funds are frozen for weeks while non-technical support agents guess who is right.</p>
+              <p><strong>With AI Court:</strong> The AI judges review the code against the contract requirements.</p>
+              <p><strong>Verdict:</strong> "Code passes all test cases defined in the agreement. Funds released to freelancer."</p>
+            </blockquote>
+
+            <h2>Use Case 2: Crypto DAOs (Decentralized Autonomous Organizations)</h2>
+            <p><strong>The Problem:</strong> The "Oracle Gap."</p>
+
+            <blockquote>
+              <p><strong>Example:</strong> A DAO votes to pay a user for writing 5 marketing articles.</p>
+              <p><strong>Without AI Court:</strong> A human must manually verify the work and sign the transaction (slow, centralized).</p>
+              <p><strong>With AI Court:</strong> The user submits the article links. The AI verifies the content quality and topic accuracy.</p>
+              <p><strong>Verdict:</strong> "Requirements met." The verdict is signed, and the smart contract <em>automatically</em> pays the user.</p>
+            </blockquote>
+
+            <h2>Use Case 3: Betting & Prediction Apps</h2>
+            <p><strong>The Problem:</strong> Edge cases and technical glitches.</p>
+
+            <blockquote>
+              <p><strong>Example:</strong> A server crash ends a video game match early.</p>
+              <p><strong>Without AI Court:</strong> Users get angry when the bet is marked as a "Loss."</p>
+              <p><strong>With AI Court:</strong> The AI reviews the game logs and the "House Rules."</p>
+              <p><strong>Verdict:</strong> "Force Majeure event. Bet voided and refunded."</p>
+            </blockquote>
+
+            <hr>
+
+            <h2>The "Secret Weapon": Privacy via TEEs</h2>
+            <p>Most crypto projects force you to make everything public. Real businesses can't do that—they have NDAs and trade secrets.</p>
+
+            <p><strong>How we solve this with TEEs (Trusted Execution Environments):</strong></p>
+
+            <p>We run the AI models inside <strong>Oasis ROFL</strong>, which uses TEEs. Think of a TEE as a <strong>cryptographic "Black Box."</strong></p>
+
+            <ol>
+              <li><strong>Input:</strong> You upload your private contract and dispute evidence. It is encrypted immediately.</li>
+              <li><strong>Processing:</strong> The data enters the "Black Box." The AI judges read it <em>inside</em> the box to make a decision. Even the node operator cannot see what is happening inside.</li>
+              <li><strong>Output:</strong> The AI destroys the raw data and sends out <em>only</em> the verdict (e.g., "Alice wins").</li>
+            </ol>
+
+            <p><strong>Result:</strong> You get the transparency of blockchain enforcement without leaking your private data to the public.</p>
+
+            <hr>
+
+            <h2>Why is this connected to Crypto?</h2>
+
+            <ol>
+              <li><strong>Trustless Verification:</strong> You receive a digital signature proving that <em>these</em> specific AI models reached <em>this</em> consensus. You don't have to trust our company; you can verify the proof.</li>
+              <li><strong>Automated Enforcement:</strong> Because the verdict is on-chain, it can trigger a smart contract to move money immediately. No human middleman is needed to "press the button."</li>
+            </ol>
+          </div>
         </div>
 
         <!-- Results. -->
