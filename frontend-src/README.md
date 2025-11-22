@@ -1,6 +1,6 @@
-# Verisage Frontend
+# Permissionless AI Court Frontend
 
-Frontend for Verisage Oracle - deployed to Cloudflare Pages.
+Frontend for Permissionless AI Court - deployed to Cloudflare Pages.
 
 ## Local Development
 
@@ -34,7 +34,7 @@ The dev server will start on `http://localhost:5173` and proxy API requests to `
 3. Create the Pages project:
    ```bash
    cd frontend-src
-   wrangler pages project create verisage
+   wrangler pages project create permissionless-ai-court
    ```
 
 ### Deploy
@@ -43,23 +43,23 @@ The dev server will start on `http://localhost:5173` and proxy API requests to `
 
 ```bash
 cd frontend-src
-VITE_API_URL=https://testnet-api.verisage.xyz npm run build
-wrangler pages deploy dist --project-name=verisage --branch=preview
+VITE_API_URL=https://testnet-api.example.com npm run build
+wrangler pages deploy dist --project-name=permissionless-ai-court --branch=preview
 ```
 
 #### Production Deployment
 
 ```bash
 cd frontend-src
-VITE_API_URL=https://api.verisage.xyz npm run build
-wrangler pages deploy dist --project-name=verisage --branch=main
+VITE_API_URL=https://api.example.com npm run build
+wrangler pages deploy dist --project-name=permissionless-ai-court --branch=main
 ```
 
 ### Environment Variables
 
 Set in Cloudflare Pages dashboard under Settings > Environment variables:
 
-- `VITE_API_URL` - API endpoint URL (e.g., `https://testnet-api.verisage.xyz`)
+- `VITE_API_URL` - API endpoint URL (e.g., `https://testnet-api.example.com`)
 
 ### CI/CD with GitHub Actions
 

@@ -1,7 +1,7 @@
 {
-  "name": "verisage-frontend",
+  "name": "permissionless-ai-court-frontend",
   "version": "1.0.0",
-  "description": "Browser frontend for Verisage Oracle with x402 wallet payments",
+  "description": "Browser frontend for Permissionless AI Court with x402 wallet payments",
   "type": "module",
   "scripts": {
     "dev": "vite",
