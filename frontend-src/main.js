@@ -16,10 +16,6 @@ let walletClient = null;
 let fetchWithPay = null;
 let currentAccount = null;
 let isServiceHealthy = true;
-let currentMode = 'fact'; // 'fact' or 'tweet'
-let featureFlags = {
-  tweet_analysis: false, // Will be fetched from backend
-};
 let recentJobIds = new Set();
 
 // DOM elements.
@@ -33,12 +29,6 @@ const submitButton = document.getElementById('submitButton');
 const submitButtonText = document.getElementById('submitButtonText');
 const queryInput = document.getElementById('queryInput');
 const charCount = document.getElementById('charCount');
-const tweetUrlInput = document.getElementById('tweetUrlInput');
-const tweetCharCount = document.getElementById('tweetCharCount');
-const factInput = document.getElementById('factInput');
-const tweetInput = document.getElementById('tweetInput');
-const factModeBtn = document.getElementById('factModeBtn');
-const tweetModeBtn = document.getElementById('tweetModeBtn');
 const infoText = document.getElementById('infoText');
 const infoNote = document.getElementById('infoNote');
 const loadingSection = document.getElementById('loadingSection');
@@ -59,99 +49,11 @@ apiDocsLink.href = `${API_URL}/docs`;
 apiUrlLink.href = `${API_URL}/docs`;
 apiUrlLink.textContent = API_URL;
 
-// Mode toggle functionality
-function updateUIForMode(mode) {
-  currentMode = mode;
-
-  const recentActivityHeading = document.getElementById('recentActivityHeading');
-
-  if (mode === 'fact') {
-    factInput.style.display = 'block';
-    tweetInput.style.display = 'none';
-    submitButtonText.textContent = 'Verify ($0.1 USDC on Base)';
-    factModeBtn.classList.add('active');
-    tweetModeBtn.classList.remove('active');
-
-    infoText.textContent =
-      'Trustless fact verification powered by multiple independent AI providers. Query Claude, Gemini, OpenAI, Perplexity, and Grok simultaneously—receive consensus answers with full transparency.';
-    infoNote.innerHTML =
-      '<strong>Note:</strong> Queries should be answerable with YES/NO. Be specific with dates, names, and facts you want verified.';
-
-    // Update recent activity heading
-    if (recentActivityHeading) {
-      recentActivityHeading.textContent = 'Recent Fact-Checks';
-    }
-  } else {
-    factInput.style.display = 'none';
-    tweetInput.style.display = 'block';
-    submitButtonText.textContent = 'Analyze ($0.15 USDC on Base)';
-    tweetModeBtn.classList.add('active');
-    factModeBtn.classList.remove('active');
-
-    infoText.textContent =
-      'AI-powered social media verification using Grok. Submit any X (Twitter) post URL to receive a comprehensive credibility analysis. Grok has direct access to X data and identifies factual claims, detects misinformation, evaluates context, and flags manipulation tactics.';
-    infoNote.innerHTML =
-      '<strong>Note:</strong> Provide the full URL to an X post (e.g., https://x.com/username/status/1234567890). Analysis includes: factual claim verification, source quality assessment, bias detection, and content type classification (credible, questionable, misleading, or opinion).';
-
-    // Update recent activity heading
-    if (recentActivityHeading) {
-      recentActivityHeading.textContent = 'Recent X Post Analyses';
-    }
-  }
-
-  // Store mode preference
-  localStorage.setItem('preferredMode', mode);
-
-  // Reload recent results based on current mode
-  loadRecentResolutions();
+// Initialize UI
+const recentActivityHeading = document.getElementById('recentActivityHeading');
+if (recentActivityHeading) {
+  recentActivityHeading.textContent = 'Recent Resolutions';
 }
-
-// Mode toggle handlers
-factModeBtn.addEventListener('click', () => {
-  updateUIForMode('fact');
-  window.location.hash = 'fact';
-});
-
-tweetModeBtn.addEventListener('click', () => {
-  updateUIForMode('tweet');
-  window.location.hash = 'tweet';
-});
-
-// Check URL hash for deep linking
-function loadModeFromURL() {
-  const hash = window.location.hash.substring(1); // Remove #
-
-  // Don't override if this is a result link
-  if (hash.startsWith('result/')) {
-    return true; // Keep the result hash intact
-  }
-
-  if (hash === 'tweet' || hash === 'analyze-tweet') {
-    updateUIForMode('tweet');
-    return true;
-  } else if (hash === 'fact' || hash === 'fact-check') {
-    updateUIForMode('fact');
-    return true;
-  }
-  return false;
-}
-
-// Load mode from URL hash first, then localStorage
-if (!loadModeFromURL()) {
-  const preferredMode = localStorage.getItem('preferredMode');
-  if (preferredMode === 'tweet') {
-    updateUIForMode('tweet');
-    window.location.hash = 'tweet';
-  } else {
-    // Default to fact mode and set hash
-    window.location.hash = 'fact';
-  }
-}
-
-// Handle hash changes for navigation (e.g., browser back/forward)
-window.addEventListener('hashchange', () => {
-  loadModeFromURL();
-});
 
 // Event delegation for share buttons in recent fact-checks
 document.addEventListener('click', (e) => {
@@ -292,56 +194,28 @@ queryForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  let endpoint, payload;
+  const query = queryInput.value.trim();
 
-  if (currentMode === 'fact') {
-    const query = queryInput.value.trim();
-
-    if (!query || query.length < 10 || query.length > 256) {
-      showError('Query must be between 10 and 256 characters');
-      return;
-    }
-
-    // Validate query pattern (matches backend validation).
-    const allowedPattern = /^[a-zA-Z0-9\s.,?!\-'"":;()/@#$%&+=]+$/;
-    if (!allowedPattern.test(query)) {
-      showError(
-        'Query contains invalid characters. Only alphanumeric and common punctuation allowed.'
-      );
-      return;
-    }
-
-    endpoint = `${API_URL}/api/v1/query`;
-    payload = { query };
-  } else {
-    // Tweet mode
-    const tweetUrl = tweetUrlInput.value.trim();
-
-    if (!tweetUrl || tweetUrl.length < 28 || tweetUrl.length > 200) {
-      showError('X Post URL must be between 28 and 200 characters');
-      return;
-    }
-
-    // Validate tweet URL pattern (matches backend validation)
-    const tweetUrlPattern = /^https?:\/\/(twitter\.com|x\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+.*$/;
-    if (!tweetUrlPattern.test(tweetUrl)) {
-      showError(
-        'Please provide a valid X (Twitter) post URL (e.g., https://x.com/username/status/1234567890)'
-      );
-      return;
-    }
-
-    endpoint = `${API_URL}/api/v1/analyze-tweet`;
-    payload = { tweet_url: tweetUrl };
+  if (!query || query.length < 10 || query.length > 256) {
+    showError('Query must be between 10 and 256 characters');
+    return;
   }
+
+  // Validate query pattern (matches backend validation).
+  const allowedPattern = /^[a-zA-Z0-9\s.,?!\-'"":;()/@#$%&+=]+$/;
+  if (!allowedPattern.test(query)) {
+    showError(
+      'Query contains invalid characters. Only alphanumeric and common punctuation allowed.'
+    );
+    return;
+  }
+
+  const endpoint = `${API_URL}/api/v1/query`;
+  const payload = { query };
 
   try {
     hideError();
-    showLoading(
-      currentMode === 'fact'
-        ? 'Submitting query with payment...'
-        : 'Submitting X post analysis with payment...'
-    );
+    showLoading('Submitting query with payment...');
     submitButton.disabled = true;
 
     // Submit query - payment will be handled automatically by x402-fetch.
@@ -386,7 +260,7 @@ queryForm.addEventListener('submit', async (e) => {
       errorMessage = `${errorMessage} (x402 facilitator issue - please try again)`;
     }
 
-    showError(`Failed to submit ${currentMode === 'fact' ? 'query' : 'analysis'}: ${errorMessage}`);
+    showError(`Failed to submit query: ${errorMessage}`);
     hideLoading();
     // Only re-enable if wallet is connected.
     if (fetchWithPay) {
@@ -400,11 +274,7 @@ async function pollForResults(jobId) {
   const maxPolls = 90; // 6 minutes max.
   const pollInterval = 4000; // 4 seconds.
 
-  const loadingText =
-    currentMode === 'fact'
-      ? 'Querying multiple AI providers...'
-      : 'Analyzing X post with Grok AI...';
-  showLoading(loadingText);
+  showLoading('Querying multiple AI providers...');
 
   for (let i = 0; i < maxPolls; i++) {
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
@@ -433,14 +303,10 @@ async function pollForResults(jobId) {
       // Update loading message based on status.
       const statusMessages = {
         pending: 'Confirming payment settlement...',
-        processing:
-          currentMode === 'fact'
-            ? 'Querying AI providers and analyzing responses...'
-            : 'Analyzing X post with Grok AI...',
+        processing: 'Querying AI providers and analyzing responses...',
       };
       loadingMessage.textContent =
-        statusMessages[data.status] ||
-        (currentMode === 'fact' ? 'Processing your query...' : 'Processing your analysis...');
+        statusMessages[data.status] || 'Processing your query...';
     } catch (error) {
       showError(`Failed to get results: ${error.message}`);
       hideLoading();
@@ -460,87 +326,16 @@ async function pollForResults(jobId) {
   }
 }
 
-// Helper function to wait for Twitter widgets library to load
-function waitForTwitterWidgets() {
-  return new Promise((resolve) => {
-    if (window.twttr && window.twttr.widgets) {
-      resolve(window.twttr.widgets);
-    } else {
-      // Poll for twttr to be available
-      const checkInterval = setInterval(() => {
-        if (window.twttr && window.twttr.widgets) {
-          clearInterval(checkInterval);
-          resolve(window.twttr.widgets);
-        }
-      }, 100);
-
-      // Also listen for the Twitter widgets load event
-      window.addEventListener('load', () => {
-        if (window.twttr && window.twttr.widgets) {
-          clearInterval(checkInterval);
-          resolve(window.twttr.widgets);
-        }
-      });
-    }
-  });
-}
-
-// Helper function to render embedded tweet
-async function renderTweetEmbed(tweetUrl, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  // Check if already rendered (contains iframe)
-  if (container.querySelector('iframe')) {
-    return; // Already rendered, don't re-render
-  }
-
-  // Create the Twitter embed HTML
-  const embedHtml = `
-    <blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
-      <a href="${escapeHtml(tweetUrl)}"></a>
-    </blockquote>
-  `;
-
-  // Clear and insert the HTML
-  container.innerHTML = embedHtml;
-
-  // Wait for Twitter widgets library to load and then render
-  try {
-    const widgets = await waitForTwitterWidgets();
-    // Use createTweet instead of load for better control
-    const blockquote = container.querySelector('blockquote');
-    if (blockquote) {
-      // Clear the container and create tweet directly
-      container.innerHTML = '';
-      await widgets.createTweet(
-        tweetUrl.split('/status/')[1].split('?')[0], // Extract tweet ID
-        container,
-        {
-          theme: 'dark',
-          dnt: true,
-        }
-      );
-    }
-  } catch (error) {
-    console.error('Failed to load Twitter widgets:', error);
-  }
-}
 
 // Display result.
 function displayResult(jobData) {
   const result = jobData.result;
 
-  // Handle both factual (final_decision) and tweet (final_verdict) results
-  const decision = (result.final_decision || result.final_verdict || 'uncertain').toLowerCase();
+  const decision = (result.final_decision || 'uncertain').toLowerCase();
   const confidence = (result.final_confidence * 100).toFixed(1);
 
-  // Determine if this is a tweet analysis result
-  const isTweetResult = !!result.final_verdict;
-
-  // Parse and format explanation/analysis using the shared function.
-  const explanationText = isTweetResult ? result.analysis_summary : result.explanation;
-  const explanationHtml = formatExplanation(explanationText);
+  // Parse and format explanation using the shared function.
+  const explanationHtml = formatExplanation(result.explanation);
 
   // Format payment info if available.
   let paymentInfoHtml = '';
@@ -596,17 +391,13 @@ function displayResult(jobData) {
     `;
   }
 
-  // Format the header based on result type
-  const headerLabel = isTweetResult ? 'X Post URL' : 'Query';
-  const headerValue = isTweetResult ? result.tweet.url : result.query;
-
   // Create shareable link
   const shareUrl = `${API_URL}/results_social/${jobData.job_id}`;
 
   let html = `
     <div class="result-card">
       <div class="result-header">
-        <h3>${headerLabel}: ${escapeHtml(headerValue)}</h3>
+        <h3>Query: ${escapeHtml(result.query)}</h3>
         ${paymentInfoHtml}
       </div>
 
@@ -615,53 +406,29 @@ function displayResult(jobData) {
           <span class="share-icon">🔗</span>
           <span class="share-text">Share / Copy Link</span>
         </button>
-        <p class="share-note">Share this fact-check result on social media</p>
+        <p class="share-note">Share this resolution result on social media</p>
       </div>
-
-      ${
-        isTweetResult
-          ? `
-      <div class="tweet-embed-container">
-        <div style="width: 100%; max-width: 700px;">
-          <div id="tweet-embed-${jobData.job_id}"></div>
-        </div>
-      </div>
-      `
-          : ''
-      }
 
       <div class="final-decision ${decision}">
-        <h4>Final ${isTweetResult ? 'Verdict' : 'Decision'}: ${decision.toUpperCase()}</h4>
+        <h4>Final Decision: ${decision.toUpperCase()}</h4>
         <div class="confidence-bar">
           <div class="confidence-fill" style="width: ${confidence}%"></div>
         </div>
         <p class="confidence-text">Confidence: ${confidence}%</p>
       </div>
 
-      ${
-        !isTweetResult
-          ? `
       <div class="explanation">
         <h4>Consensus Analysis</h4>
         ${explanationHtml}
       </div>
-      `
-          : ''
-      }
 
-      <details class="llm-details" ${isTweetResult ? 'open' : ''}>
-        <summary>${isTweetResult ? 'Grok Analysis' : 'View Individual LLM Responses'}</summary>
+      <details class="llm-details">
+        <summary>View Individual LLM Responses</summary>
         <div class="llm-responses">
   `;
 
   for (const llm of result.llm_responses) {
     const llmConfidence = (llm.confidence * 100).toFixed(1);
-
-    // Get decision/verdict and reasoning/analysis based on result type
-    const llmDecision = isTweetResult ? llm.verdict : llm.decision;
-    const llmReasoning = isTweetResult ? llm.analysis : llm.reasoning;
-    const decisionLabel = isTweetResult ? 'Verdict' : 'Decision';
-    const reasoningLabel = isTweetResult ? 'Analysis' : 'Reasoning';
 
     html += `
       <div class="llm-response ${llm.error ? 'error' : ''}">
@@ -671,9 +438,9 @@ function displayResult(jobData) {
           llm.error
             ? `<p class="error-text">Request failed</p>`
             : `
-            <p><strong>${decisionLabel}:</strong> ${llmDecision.toUpperCase()}</p>
+            <p><strong>Decision:</strong> ${llm.decision.toUpperCase()}</p>
             <p><strong>Confidence:</strong> ${llmConfidence}%</p>
-            <p><strong>${reasoningLabel}:</strong> ${escapeHtml(llmReasoning)}</p>
+            <p><strong>Reasoning:</strong> ${escapeHtml(llm.reasoning)}</p>
           `
         }
       </div>
@@ -690,11 +457,6 @@ function displayResult(jobData) {
 
   resultContent.innerHTML = html;
   resultSection.classList.add('active');
-
-  // Render tweet embed if this is a tweet result
-  if (isTweetResult && result.tweet?.url) {
-    renderTweetEmbed(result.tweet.url, `tweet-embed-${jobData.job_id}`);
-  }
 }
 
 // Helper functions.
@@ -913,39 +675,16 @@ if (queryInput && charCount) {
   });
 }
 
-// Character counter for tweet mode.
-if (tweetUrlInput && tweetCharCount) {
-  tweetCharCount.textContent = tweetUrlInput.value.length;
-  tweetUrlInput.addEventListener('input', function () {
-    if (tweetCharCount) {
-      tweetCharCount.textContent = this.value.length;
-    }
-  });
-}
 
 // Recent resolutions feed.
 
-// Load recent resolutions based on current mode
+// Load recent resolutions
 function loadRecentResolutions() {
-  // Filter by current mode: 'fact' or 'tweet'
-  const queryType = currentMode;
-
-  // Clear container and job IDs when switching modes
-  const container = document.getElementById('recent-resolutions');
-  if (container) {
-    container.innerHTML = '';
-    recentJobIds.clear();
-  }
-
-  fetchRecentResolutions(queryType);
+  fetchRecentResolutions();
 }
 
-function fetchRecentResolutions(queryType = null) {
-  // Build URL with query_type parameter if specified
-  let url = `${API_URL}/api/v1/recent?limit=5&exclude_uncertain=false`;
-  if (queryType) {
-    url += `&query_type=${queryType}`;
-  }
+function fetchRecentResolutions() {
+  const url = `${API_URL}/api/v1/recent?limit=5&exclude_uncertain=false`;
 
   fetch(url)
     .then((response) => response.json())
@@ -999,63 +738,21 @@ function fetchRecentResolutions(queryType = null) {
     });
 }
 
-// Event delegation for rendering tweet embeds when details are opened
-document.addEventListener(
-  'toggle',
-  (e) => {
-    if (e.target.classList.contains('recent-result') && e.target.open) {
-      const jobId = e.target.getAttribute('data-job-id');
-      const resultType = e.target.getAttribute('data-type');
-
-      // Only render tweet embed for tweet type results
-      if (resultType === 'tweet' && jobId) {
-        // Find the tweet URL from the query text
-        const queryText = e.target.querySelector('.query-text');
-        if (queryText) {
-          const tweetUrl = queryText.textContent.trim();
-          // Check if it looks like a tweet URL
-          if (tweetUrl.includes('x.com') || tweetUrl.includes('twitter.com')) {
-            renderTweetEmbed(tweetUrl, `tweet-embed-recent-${jobId}`);
-          }
-        }
-      }
-    }
-  },
-  true
-);
 
 function createCollapsedResult(job) {
   if (!job.result) return '';
 
   const result = job.result;
 
-  // Handle both factual (final_decision) and tweet (final_verdict) results
-  const isTweetResult = !!result.final_verdict;
-  const decision = (result.final_decision || result.final_verdict || 'uncertain').toLowerCase();
-  const queryType = isTweetResult ? 'tweet' : 'fact';
-
-  // Choose appropriate icon based on result type
-  let decisionIcon;
-  if (isTweetResult) {
-    // Tweet verdicts: CREDIBLE/QUESTIONABLE/MISLEADING/OPINION
-    if (decision === 'credible') decisionIcon = '✓';
-    else if (decision === 'questionable') decisionIcon = '?';
-    else if (decision === 'misleading') decisionIcon = '⚠';
-    else if (decision === 'opinion') decisionIcon = '💭';
-    else decisionIcon = '?';
-  } else {
-    // Factual verdicts: YES/NO/UNCERTAIN
-    decisionIcon = decision === 'yes' ? '✓' : decision === 'no' ? '✗' : '?';
-  }
-
-  // Format display text - use appropriate field based on result type
-  const displayText = isTweetResult ? result.tweet?.url || job.query : result.query;
+  const decision = (result.final_decision || 'uncertain').toLowerCase();
+  const decisionIcon = decision === 'yes' ? '✓' : decision === 'no' ? '✗' : '?';
+  const displayText = result.query;
 
   // Format timestamp.
   const timestamp = job.completed_at ? formatTimeAgo(job.completed_at) : '';
 
   return `
-    <details class="recent-result" data-job-id="${job.job_id}" data-type="${queryType}">
+    <details class="recent-result" data-job-id="${job.job_id}">
       <summary class="recent-summary ${decision}">
         <span class="decision-icon">${decisionIcon}</span>
         <span class="query-text">${escapeHtml(displayText)}</span>
@@ -1095,18 +792,7 @@ function createCollapsedResult(job) {
             : ''
         }
         ${
-          isTweetResult && result.tweet?.url
-            ? `
-        <div class="tweet-embed-container">
-          <div style="width: 100%; max-width: 700px;">
-            <div id="tweet-embed-recent-${job.job_id}"></div>
-          </div>
-        </div>
-        `
-            : ''
-        }
-        ${
-          !isTweetResult && result.explanation
+          result.explanation
             ? `
         <div class="explanation">
           <h4>Consensus Analysis</h4>
@@ -1115,19 +801,13 @@ function createCollapsedResult(job) {
         `
             : ''
         }
-        <details class="llm-details" ${isTweetResult ? 'open' : ''}>
-          <summary>${isTweetResult ? 'Grok Analysis' : 'View Individual LLM Responses'}</summary>
+        <details class="llm-details">
+          <summary>View Individual LLM Responses</summary>
           <div class="llm-responses">
             ${result.llm_responses
               .map((response) => {
                 const errorClass = response.error ? 'error' : '';
                 const providerLabel = escapeHtml((response.provider || '').toUpperCase());
-
-                // Handle both tweet (verdict/analysis) and fact (decision/reasoning) responses
-                const llmDecision = response.verdict || response.decision;
-                const llmReasoning = response.analysis || response.reasoning;
-                const decisionLabel = isTweetResult ? 'Verdict' : 'Decision';
-                const reasoningLabel = isTweetResult ? 'Analysis' : 'Reasoning';
 
                 return `
                 <div class="llm-response ${errorClass}">
@@ -1136,9 +816,9 @@ function createCollapsedResult(job) {
                     response.error
                       ? `<p class="error-text">Request failed</p>`
                       : `
-                      <p><strong>${decisionLabel}:</strong> ${llmDecision.toUpperCase()}</p>
+                      <p><strong>Decision:</strong> ${response.decision.toUpperCase()}</p>
                       <p><strong>Confidence:</strong> ${(response.confidence * 100).toFixed(1)}%</p>
-                      <p><strong>${reasoningLabel}:</strong> ${escapeHtml(llmReasoning)}</p>
+                      <p><strong>Reasoning:</strong> ${escapeHtml(response.reasoning)}</p>
                     `
                   }
                 </div>
@@ -1184,12 +864,11 @@ function createCollapsedResult(job) {
 }
 
 // Initial fetch and poll every 10 seconds.
-// Load initial recent resolutions based on current mode
 loadRecentResolutions();
 
 // Poll for new resolutions every 10 seconds (incremental update, doesn't clear)
 setInterval(() => {
-  fetchRecentResolutions(currentMode);
+  fetchRecentResolutions();
 }, 10000);
 
 // Health check monitoring.
@@ -1256,17 +935,11 @@ checkServiceHealth();
 // Poll health every 30 seconds.
 setInterval(checkServiceHealth, 30000);
 
-// Fetch and display payment info, and apply feature flags.
+// Fetch and display payment info.
 async function fetchPaymentInfo() {
   try {
     const response = await fetch(`${API_URL}/info`);
     const info = await response.json();
-
-    // Update feature flags
-    if (info.features) {
-      featureFlags = info.features;
-      applyFeatureFlags();
-    }
 
     if (info.payment_address) {
       const paymentInfoEl = document.getElementById('paymentInfo');
@@ -1281,39 +954,6 @@ async function fetchPaymentInfo() {
     }
   } catch {
     // Silently handle error
-  }
-}
-
-// Apply feature flags to UI
-function applyFeatureFlags() {
-  // Hide/show tweet analysis mode toggle
-  if (!featureFlags.tweet_analysis) {
-    // Hide tweet mode button
-    if (tweetModeBtn) {
-      tweetModeBtn.style.display = 'none';
-    }
-
-    // Hide tweet filter button
-    const tweetFilterBtn = document.querySelector('.filter-btn[data-filter="tweet"]');
-    if (tweetFilterBtn) {
-      tweetFilterBtn.style.display = 'none';
-    }
-
-    // If currently in tweet mode, switch to fact mode
-    if (currentMode === 'tweet') {
-      updateUIForMode('fact');
-    }
-  } else {
-    // Show tweet mode button
-    if (tweetModeBtn) {
-      tweetModeBtn.style.display = 'inline-block';
-    }
-
-    // Show tweet filter button
-    const tweetFilterBtn = document.querySelector('.filter-btn[data-filter="tweet"]');
-    if (tweetFilterBtn) {
-      tweetFilterBtn.style.display = 'inline-block';
-    }
   }
 }
 

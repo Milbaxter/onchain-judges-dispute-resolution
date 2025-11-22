@@ -1026,125 +1026,6 @@
         background: rgba(16, 185, 129, 0.05);
       }
 
-      /* Tweet Input Styles */
-      input[type='text'] {
-        width: 100%;
-        padding: 16px;
-        background: #0a0a0a;
-        border: 1px solid #27272a;
-        border-radius: 0;
-        font-size: 1em;
-        font-family: inherit;
-        color: #e4e4e7;
-        transition: border-color 0.2s ease;
-      }
-
-      input[type='text']::placeholder {
-        color: #52525b;
-      }
-
-      input[type='text']:focus {
-        outline: none;
-        border-color: #10b981;
-        background: #0f0f0f;
-      }
-
-      /* Tweet verdict colors */
-      .final-decision.credible {
-        border-left: 4px solid #10b981;
-      }
-
-      .final-decision.questionable {
-        border-left: 4px solid #eab308;
-      }
-
-      .final-decision.misleading {
-        border-left: 4px solid #f97316;
-      }
-
-      .final-decision.opinion {
-        border-left: 4px solid #3b82f6;
-      }
-
-      .final-decision.credible .confidence-fill {
-        background: linear-gradient(90deg, #10b981, #059669);
-      }
-
-      .final-decision.questionable .confidence-fill {
-        background: linear-gradient(90deg, #eab308, #ca8a04);
-      }
-
-      .final-decision.misleading .confidence-fill {
-        background: linear-gradient(90deg, #f97316, #ea580c);
-      }
-
-      .final-decision.opinion .confidence-fill {
-        background: linear-gradient(90deg, #3b82f6, #2563eb);
-      }
-
-      .recent-summary.credible {
-        border-left-color: #10b981;
-      }
-
-      .recent-summary.questionable {
-        border-left-color: #eab308;
-      }
-
-      .recent-summary.misleading {
-        border-left-color: #f97316;
-      }
-
-      .recent-summary.opinion {
-        border-left-color: #3b82f6;
-      }
-
-      .recent-summary.credible .decision-icon {
-        color: #10b981;
-      }
-
-      .recent-summary.questionable .decision-icon {
-        color: #eab308;
-      }
-
-      .recent-summary.misleading .decision-icon {
-        color: #f97316;
-      }
-
-      .recent-summary.opinion .decision-icon {
-        color: #3b82f6;
-      }
-
-      .provider-item.credible {
-        border-left-color: #10b981;
-      }
-
-      .provider-item.questionable {
-        border-left-color: #eab308;
-      }
-
-      .provider-item.misleading {
-        border-left-color: #f97316;
-      }
-
-      .provider-item.opinion {
-        border-left-color: #3b82f6;
-      }
-
-      .provider-item.credible .provider-decision {
-        color: #10b981;
-      }
-
-      .provider-item.questionable .provider-decision {
-        color: #eab308;
-      }
-
-      .provider-item.misleading .provider-decision {
-        color: #f97316;
-      }
-
-      .provider-item.opinion .provider-decision {
-        color: #3b82f6;
-      }
 
       /* Query type indicator */
       .query-type-icon {
@@ -1158,37 +1039,6 @@
         margin-right: 4px;
       }
 
-      /* Tweet embed container */
-      .tweet-embed-container {
-        padding: 24px;
-        border-bottom: 1px solid #222;
-        background: rgba(255, 255, 255, 0.005);
-      }
-
-      .tweet-embed-container > div {
-        margin: 0 auto;
-        max-width: 700px;
-      }
-
-      .tweet-embed-container h4 {
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #e4e4e7;
-        letter-spacing: 0.05em;
-        font-size: 0.95em;
-        text-transform: uppercase;
-      }
-
-      /* Twitter embed styling overrides */
-      .tweet-embed-container .twitter-tweet-rendered {
-        margin: 0 auto !important;
-      }
-
-      .tweet-embed-container iframe {
-        margin: 0 auto !important;
-        display: block !important;
-      }
 
       /* Footer */
       footer {
@@ -1296,21 +1146,13 @@
       <main>
         <!-- Query Form. -->
         <div id="querySection" class="query-section">
-          <!-- Mode Toggle -->
-          <div class="mode-toggle">
-            <button class="mode-btn active" data-mode="fact" id="factModeBtn">Verify Fact</button>
-            <button class="mode-btn" data-mode="tweet" id="tweetModeBtn">Analyze X Post</button>
-          </div>
 
           <div class="info-box" id="infoBox">
             <p id="infoText">
-              Trustless fact verification powered by multiple independent AI providers. Query
-              Claude, Gemini, OpenAI, Perplexity, and Grok simultaneously—receive consensus answers
-              with full transparency.
+              Fair conflict resolution powered by multiple independent AI judges. Submit the parties' contract and describe the situation—Claude, Gemini, OpenAI, Perplexity, and Grok will simultaneously review the evidence and decide the winner.
             </p>
             <p style="margin-top: 12px" id="infoNote">
-              <strong>Note:</strong> Queries should be answerable with YES/NO. Be specific with
-              dates, names, and facts you want verified.
+              <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute.
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #a1a1aa">
               You can also integrate via
@@ -1318,14 +1160,8 @@
               payment headers for programmatic access.
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #a1a1aa">
-              <strong style="color: #10b981">Trustless & Verifiable:</strong> All responses are
+              <strong style="color: #10b981">Trustless & Verifiable:</strong> All verdicts are
               cryptographically signed. Running on Oasis ROFL with reproducible builds.
-              <a
-                href="https://github.com/ptrus/onchain-judges-dispute-resolution-1#how-to-verify-the-service"
-                target="_blank"
-                style="color: #10b981; text-decoration: none"
-                >Learn how to verify →</a
-              >
             </p>
           </div>
 
@@ -1339,30 +1175,15 @@
           </div>
 
           <form id="queryForm">
-            <!-- Fact Mode Input -->
-            <div id="factInput" style="display: block">
-              <label for="queryInput">Your Question</label>
+            <div id="factInput">
+              <label for="queryInput">Submit Your Case</label>
               <textarea
                 id="queryInput"
                 minlength="10"
                 maxlength="256"
-                placeholder="e.g., Did the Lakers win against the Warriors on October 22, 2025?"
+                placeholder="Contract states payment upon 'satisfactory delivery'. Client rejected the work but used the code. Who wins?"
               ></textarea>
               <div class="char-counter"><span id="charCount">0</span> / 256</div>
-            </div>
-
-            <!-- Tweet Mode Input -->
-            <div id="tweetInput" style="display: none">
-              <label for="tweetUrlInput">X Post URL</label>
-              <input
-                type="text"
-                id="tweetUrlInput"
-                minlength="28"
-                maxlength="200"
-                placeholder="https://x.com/username/status/1234567890"
-                pattern="https?://(twitter\.com|x\.com)/.+"
-              />
-              <div class="char-counter"><span id="tweetCharCount">0</span> / 200</div>
             </div>
 
             <button type="submit" id="submitButton" class="btn" disabled style="margin-top: 20px">
@@ -1445,6 +1266,5 @@
     </div>
 
     <script type="module" src="/main.js"></script>
-    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
   </body>
 </html>
