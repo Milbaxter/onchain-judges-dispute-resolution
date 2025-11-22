@@ -20,31 +20,6 @@
         box-sizing: border-box;
       }
 
-      /* Cursor follower */
-      #cursor-follower {
-        position: fixed;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0) 70%);
-        pointer-events: none;
-        z-index: 9999;
-        transform: translate(-50%, -50%);
-        transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
-        mix-blend-mode: screen;
-        opacity: 0;
-      }
-
-      #cursor-follower.active {
-        opacity: 1;
-      }
-
-      #cursor-follower.hover {
-        width: 40px;
-        height: 40px;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.6) 0%, rgba(16, 185, 129, 0) 70%);
-      }
-
       body {
         font-family:
           'Inter',
@@ -1617,7 +1592,7 @@
 
           <div class="info-box" id="infoBox">
             <p id="infoText">
-              Fair conflict resolution powered by multiple independent AI judges. Submit the parties' contract and describe the situation framed as Party A vs Party B—Claude, Gemini, OpenAI, Perplexity, and Grok will simultaneously review the evidence and decide whether A or B wins.
+              Fair conflict resolution powered by multiple independent AI judges.
             </p>
             <p style="margin-top: 12px" id="infoNote">
               <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
@@ -1796,61 +1771,6 @@
       </footer>
     </div>
 
-    <!-- Cursor Follower -->
-    <div id="cursor-follower"></div>
-
     <script type="module" src="/main.js"></script>
-    <script>
-      // Cursor follower animation
-      (function() {
-        const follower = document.getElementById('cursor-follower');
-        let mouseX = 0;
-        let mouseY = 0;
-        let followerX = 0;
-        let followerY = 0;
-        let isHovering = false;
-
-        // Update mouse position
-        document.addEventListener('mousemove', (e) => {
-          mouseX = e.clientX;
-          mouseY = e.clientY;
-          follower.classList.add('active');
-        });
-
-        // Hide on mouse leave
-        document.addEventListener('mouseleave', () => {
-          follower.classList.remove('active');
-        });
-
-        // Check for hoverable elements
-        const hoverableSelectors = 'a, button, input, textarea, select, [role="button"], .btn, .tab-btn, .share-btn, .api-link, .wallet-connect-btn';
-        document.querySelectorAll(hoverableSelectors).forEach(el => {
-          el.addEventListener('mouseenter', () => {
-            isHovering = true;
-            follower.classList.add('hover');
-          });
-          el.addEventListener('mouseleave', () => {
-            isHovering = false;
-            follower.classList.remove('hover');
-          });
-        });
-
-        // Smooth animation loop
-        function animate() {
-          const dx = mouseX - followerX;
-          const dy = mouseY - followerY;
-          
-          followerX += dx * 0.1;
-          followerY += dy * 0.1;
-          
-          follower.style.left = followerX + 'px';
-          follower.style.top = followerY + 'px';
-          
-          requestAnimationFrame(animate);
-        }
-        
-        animate();
-      })();
-    </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-"""FastAPI server for Verisage - Multi-LLM Oracle."""
+"""FastAPI server for Polycourt - Multi-LLM Oracle."""
 
 import asyncio
 import logging
@@ -186,7 +186,7 @@ async def lifespan(app: FastAPI):
 
 # Configure FastAPI application.
 app = FastAPI(
-    title="Verisage.xyz",
+    title="Polycourt.xyz",
     description=(
         "Verifiable Multi-LLM Truth Oracle running on Oasis ROFL. "
         "Trustless fact verification powered by multiple independent AI providers (Claude, Gemini, OpenAI). "
@@ -203,6 +203,25 @@ app = FastAPI(
     },
     lifespan=lifespan,
 )
+
+
+# Override OpenAPI schema to ensure title is correct.
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title="Polycourt.xyz",
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+    )
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 # Custom key function for rate limiting.
@@ -370,7 +389,7 @@ if not settings.debug_payments:
         network=settings.x402_network,
         description="Verifiable Multi-LLM Truth Oracle - Trustless fact verification powered by multiple independent AI providers (Claude, Gemini, OpenAI). Cryptographically signed responses from code running in Oasis ROFL TEE.",
         paywall_config=PaywallConfig(
-            app_name="Verisage.xyz",
+            app_name="Polycourt.xyz",
             app_logo="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
         ),
         input_schema=HTTPInputSchema(
@@ -426,7 +445,7 @@ if not settings.debug_payments:
             network=settings.x402_network,
             description="X/Twitter Post Credibility Analysis - AI-powered verification of social media content using multiple independent LLM providers. Analyzes factual claims, identifies misinformation, and assesses overall post credibility.",
             paywall_config=PaywallConfig(
-                app_name="Verisage.xyz",
+                app_name="Polycourt.xyz",
                 app_logo="https://raw.githubusercontent.com/ptrus/verisage.xyz/master/static/logo.png",
             ),
             input_schema=HTTPInputSchema(
