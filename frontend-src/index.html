@@ -1561,6 +1561,7 @@
     <div class="container">
       <header>
         <div class="header-top">
+          <a id="aboutLink" href="#" class="api-link">About</a>
           <a id="apiDocsLink" href="/docs" class="api-link" target="_blank">API Docs</a>
           <div class="header-wallet">
             <button id="connectButton" class="btn wallet-connect-btn">Connect Wallet</button>
@@ -1572,19 +1573,15 @@
           </div>
         </div>
         <div class="header-branding">
-          <img src="/logo.svg" alt="Polycourt Logo" class="header-logo" />
-          <h1>Polycourt</h1>
+          <a href="#" id="homeLink" style="display: flex; align-items: center; gap: 0; text-decoration: none; color: inherit;">
+            <img src="/logo.svg" alt="Polycourt Logo" class="header-logo" />
+            <h1>Polycourt</h1>
+          </a>
         </div>
         <p class="subtitle">Conflict resolution by the worlds best Large Language Models - delivered via API</p>
       </header>
 
       <main>
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
-          <button class="tab-btn active" data-tab="query">Query</button>
-          <button class="tab-btn" data-tab="about">About</button>
-        </div>
-
         <!-- Query Tab Content -->
         <div id="queryTab" class="tab-content active">
           <!-- Query Form. -->
@@ -1595,7 +1592,7 @@
               Fair conflict resolution powered by multiple independent AI judges.
             </p>
             <p style="margin-top: 12px" id="infoNote">
-              <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
+              Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #a1a1aa">
               You can also integrate via

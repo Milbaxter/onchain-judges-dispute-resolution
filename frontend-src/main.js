@@ -41,6 +41,8 @@ const healthTitle = document.getElementById('healthTitle');
 const healthMessage = document.getElementById('healthMessage');
 const apiDocsLink = document.getElementById('apiDocsLink');
 const apiUrlLink = document.getElementById('apiUrlLink');
+const aboutLink = document.getElementById('aboutLink');
+const homeLink = document.getElementById('homeLink');
 
 // Set API docs link to point to backend.
 apiDocsLink.href = `${API_URL}/docs`;
@@ -1157,24 +1159,46 @@ loadResultFromFragment();
 window.addEventListener('hashchange', loadResultFromFragment);
 
 // Tab switching functionality
-const tabButtons = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
-if (tabButtons.length > 0) {
-  tabButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const targetTab = button.getAttribute('data-tab');
+// Helper function to switch tabs
+function switchToTab(tabName) {
+  // Remove active class from all tab contents
+  tabContents.forEach((content) => content.classList.remove('active'));
 
-      // Remove active class from all buttons and contents
-      tabButtons.forEach((btn) => btn.classList.remove('active'));
-      tabContents.forEach((content) => content.classList.remove('active'));
+  // Add active class to the specified tab content
+  const targetContent = document.getElementById(`${tabName}Tab`);
+  if (targetContent) {
+    targetContent.classList.add('active');
+  }
+}
 
-      // Add active class to clicked button and corresponding content
-      button.classList.add('active');
-      const targetContent = document.getElementById(`${targetTab}Tab`);
-      if (targetContent) {
-        targetContent.classList.add('active');
-      }
-    });
+// Handle About link click
+if (aboutLink) {
+  aboutLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchToTab('about');
+    // Scroll to top of main content
+    document.querySelector('main').scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+// Handle Home/Logo click to return to Query view
+if (homeLink) {
+  homeLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchToTab('query');
+    // Scroll to top of main content
+    document.querySelector('main').scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+// Handle Home/Logo click to return to Query view
+if (homeLink) {
+  homeLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchToTab('query');
+    // Scroll to top of main content
+    document.querySelector('main').scrollIntoView({ behavior: 'smooth' });
   });
 }
