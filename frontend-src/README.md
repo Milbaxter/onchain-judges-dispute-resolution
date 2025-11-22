@@ -1,6 +1,6 @@
-# Permissionless AI Court Frontend
+# Polycourt Frontend
 
-Frontend for Permissionless AI Court - deployed to Cloudflare Pages.
+Frontend for Polycourt - deployed to Cloudflare Pages.
 
 ## Local Development
 
@@ -34,7 +34,7 @@ The dev server will start on `http://localhost:5173` and proxy API requests to `
 3. Create the Pages project:
    ```bash
    cd frontend-src
-   wrangler pages project create permissionless-ai-court
+   wrangler pages project create polycourt
    ```
 
 ### Deploy
@@ -44,7 +44,7 @@ The dev server will start on `http://localhost:5173` and proxy API requests to `
 ```bash
 cd frontend-src
 VITE_API_URL=https://testnet-api.example.com npm run build
-wrangler pages deploy dist --project-name=permissionless-ai-court --branch=preview
+wrangler pages deploy dist --project-name=polycourt --branch=preview
 ```
 
 #### Production Deployment
@@ -52,7 +52,7 @@ wrangler pages deploy dist --project-name=permissionless-ai-court --branch=previ
 ```bash
 cd frontend-src
 VITE_API_URL=https://api.example.com npm run build
-wrangler pages deploy dist --project-name=permissionless-ai-court --branch=main
+wrangler pages deploy dist --project-name=polycourt --branch=main
 ```
 
 ### Environment Variables

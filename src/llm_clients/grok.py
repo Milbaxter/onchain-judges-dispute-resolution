@@ -34,7 +34,9 @@ class GrokClient(BaseLLMClient):
             LLMResponse with decision, confidence, reasoning, and raw response
         """
         try:
-            dispute_prompt = self._create_dispute_prompt(prompt)
+            # TODO: Update API to properly separate contract and dispute_details
+            # For now, passing query as both parameters
+            dispute_prompt = self._create_dispute_prompt(prompt, prompt)
 
             response = await self.client.chat.completions.create(
                 model=self.model,

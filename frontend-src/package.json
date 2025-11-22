@@ -1,7 +1,7 @@
 {
-  "name": "permissionless-ai-court-frontend",
+  "name": "polycourt-frontend",
   "version": "1.0.0",
-  "description": "Browser frontend for Permissionless AI Court with x402 wallet payments",
+  "description": "Browser frontend for Polycourt with x402 wallet payments",
   "type": "module",
   "scripts": {
     "dev": "vite",

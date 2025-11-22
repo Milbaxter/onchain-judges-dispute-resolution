@@ -32,7 +32,9 @@ class GeminiClient(BaseLLMClient):
         client = None
         try:
             client = genai.Client(api_key=self.api_key)
-            dispute_prompt = self._create_dispute_prompt(prompt)
+            # TODO: Update API to properly separate contract and dispute_details
+            # For now, passing query as both parameters
+            dispute_prompt = self._create_dispute_prompt(prompt, prompt)
 
             response = await client.aio.models.generate_content(
                 model=self.model_name,
