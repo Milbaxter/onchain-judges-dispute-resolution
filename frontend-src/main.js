@@ -423,6 +423,8 @@ function displayResult(jobData) {
   const result = jobData.result;
 
   const decision = (result.final_decision || 'uncertain').toLowerCase();
+  // Map A/B to display format
+  const decisionDisplay = decision === 'a' ? 'A' : decision === 'b' ? 'B' : decision.toUpperCase();
   const confidence = (result.final_confidence * 100).toFixed(1);
 
   // Parse and format explanation using the shared function.
@@ -501,7 +503,7 @@ function displayResult(jobData) {
       </div>
 
       <div class="final-decision ${decision}">
-        <h4>Final Decision: ${decision.toUpperCase()}</h4>
+        <h4>Final Decision: ${decisionDisplay}</h4>
         <div class="confidence-bar">
           <div class="confidence-fill" style="width: ${confidence}%"></div>
         </div>
@@ -836,7 +838,7 @@ function createCollapsedResult(job) {
   const result = job.result;
 
   const decision = (result.final_decision || 'uncertain').toLowerCase();
-  const decisionIcon = decision === 'yes' ? '✓' : decision === 'no' ? '✗' : '?';
+  const decisionIcon = decision === 'a' ? '✓' : decision === 'b' ? '✗' : '?';
   const displayText = result.query;
 
   // Format timestamp.

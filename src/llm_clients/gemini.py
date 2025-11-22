@@ -45,12 +45,13 @@ class GeminiClient(BaseLLMClient):
                 contents=dispute_prompt,
             )
             raw_response = response.text
-            decision, confidence, reasoning = self._parse_response(raw_response)
+            decision, confidence, reasoning, winning_party = self._parse_response(raw_response)
 
             return LLMResponse(
                 provider=self.provider_name,
                 model=self.model_name,
                 decision=decision,
+                winning_party=winning_party,
                 confidence=confidence,
                 reasoning=reasoning,
                 raw_response=raw_response,
@@ -62,6 +63,7 @@ class GeminiClient(BaseLLMClient):
                 provider=self.provider_name,
                 model=self.model_name,
                 decision="uncertain",
+                winning_party=None,
                 confidence=0.0,
                 reasoning=f"Error querying Gemini: {str(e)}",
                 raw_response="",

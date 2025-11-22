@@ -62,18 +62,20 @@ class ClaudeClient(BaseLLMClient):
                     provider=self.provider_name,
                     model=self.model,
                     decision="uncertain",
+                    winning_party=None,
                     confidence=0.0,
                     reasoning="No text response received from Claude",
                     raw_response=str(message.content),
                     error="No text content in response",
                 )
 
-            decision, confidence, reasoning = self._parse_response(raw_response)
+            decision, confidence, reasoning, winning_party = self._parse_response(raw_response)
 
             return LLMResponse(
                 provider=self.provider_name,
                 model=self.model,
                 decision=decision,
+                winning_party=winning_party,
                 confidence=confidence,
                 reasoning=reasoning,
                 raw_response=raw_response,
@@ -85,6 +87,7 @@ class ClaudeClient(BaseLLMClient):
                 provider=self.provider_name,
                 model=self.model,
                 decision="uncertain",
+                winning_party=None,
                 confidence=0.0,
                 reasoning=f"Error querying Claude: {str(e)}",
                 raw_response="",

@@ -16,6 +16,14 @@ class DecisionType(str, Enum):
     UNCERTAIN = "uncertain"
 
 
+class DisputeDecisionType(str, Enum):
+    """Possible decision types for dispute resolution (A vs B)."""
+
+    A = "A"
+    B = "B"
+    UNCERTAIN = "uncertain"
+
+
 class TweetVerdictType(str, Enum):
     """Possible verdict types for tweet analysis."""
 
@@ -37,7 +45,10 @@ class LLMResponse(BaseModel):
 
     provider: str = Field(..., description="LLM provider name (claude, gemini, perplexity)")
     model: str = Field(..., description="Model name used (e.g., claude-haiku-4-5-20251001, gpt-4o)")
-    decision: DecisionType = Field(..., description="The LLM's decision")
+    decision: DecisionType = Field(..., description="The LLM's decision (yes/no/uncertain for factual queries)")
+    winning_party: DisputeDecisionType | None = Field(
+        None, description="Winning party for dispute resolution (A/B/uncertain)"
+    )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0.0 to 1.0)")
     reasoning: str = Field(..., description="Explanation for the decision")
     raw_response: str = Field(..., description="Raw text response from LLM")
@@ -78,7 +89,7 @@ class OracleResult(BaseModel):
     """Aggregated result from all LLM backends."""
 
     query: str = Field(..., description="The original query")
-    final_decision: DecisionType = Field(..., description="Weighted final decision")
+    final_decision: DisputeDecisionType = Field(..., description="Weighted final decision (A, B, or uncertain)")
     final_confidence: float = Field(..., ge=0.0, le=1.0, description="Aggregated confidence score")
     explanation: str = Field(..., description="Summary of how decision was reached")
     llm_responses: list[LLMResponse] = Field(..., description="Individual LLM responses")

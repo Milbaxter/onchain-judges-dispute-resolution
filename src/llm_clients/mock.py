@@ -3,7 +3,7 @@
 import asyncio
 
 from src.llm_clients.base import BaseLLMClient
-from src.models import DecisionType, LLMResponse, TweetLLMResponse, TweetVerdictType
+from src.models import DecisionType, DisputeDecisionType, LLMResponse, TweetLLMResponse, TweetVerdictType
 
 
 class MockLLMClient(BaseLLMClient):
@@ -24,7 +24,7 @@ class MockLLMClient(BaseLLMClient):
         """Return a mock response after sleeping.
 
         Args:
-            prompt: The query (ignored in mock mode)
+            prompt: The query (checked for dispute resolution format)
 
         Returns:
             LLMResponse with fixed mock data
@@ -32,20 +32,62 @@ class MockLLMClient(BaseLLMClient):
         # Simulate API latency.
         await asyncio.sleep(self.sleep_duration)
 
-        # Return fixed mock response.
-        raw_response = """DECISION: YES
+        # Check if this is a dispute resolution query (contains "Party A" and "Party B")
+        is_dispute = "Party A" in prompt and "Party B" in prompt
+        
+        if is_dispute:
+            # Return dispute resolution format (A/B)
+            # Vary responses by provider to simulate consensus
+            if "claude" in self.provider_name.lower():
+                winning_party = DisputeDecisionType.A
+                decision = DecisionType.YES
+            elif "gemini" in self.provider_name.lower():
+                winning_party = DisputeDecisionType.A
+                decision = DecisionType.YES
+            elif "perplexity" in self.provider_name.lower():
+                winning_party = DisputeDecisionType.B
+                decision = DecisionType.YES
+            elif "openai" in self.provider_name.lower():
+                winning_party = DisputeDecisionType.A
+                decision = DecisionType.YES
+            else:  # grok or other
+                winning_party = DisputeDecisionType.A
+                decision = DecisionType.YES
+            
+            raw_response = f"""{{
+  "winning_party": "{winning_party.value}",
+  "confidence": 0.85,
+  "reasoning": "Party A (the Freelancer) delivered code per contract. Party B (the Client) rejected but used the code, which indicates acceptance. Therefore Party A wins.",
+  "contract_validity": "valid",
+  "injection_detected": false
+}}"""
+            
+            return LLMResponse(
+                provider=self.provider_name,
+                model="mock",
+                decision=decision,
+                winning_party=winning_party,
+                confidence=0.85,
+                reasoning="Party A (the Freelancer) delivered code per contract. Party B (the Client) rejected but used the code, which indicates acceptance. Therefore Party A wins.",
+                raw_response=raw_response,
+                error=None,
+            )
+        else:
+            # Return legacy yes/no format
+            raw_response = """DECISION: YES
 CONFIDENCE: 0.85
 REASONING: This is a mock response for testing purposes. The mock oracle always returns YES with 85% confidence after a 5-second delay to simulate real API behavior."""
 
-        return LLMResponse(
-            provider=self.provider_name,
-            model="mock",
-            decision=DecisionType.YES,
-            confidence=0.85,
-            reasoning="This is a mock response for testing purposes. The mock oracle always returns YES with 85% confidence after a 5-second delay to simulate real API behavior.",
-            raw_response=raw_response,
-            error=None,
-        )
+            return LLMResponse(
+                provider=self.provider_name,
+                model="mock",
+                decision=DecisionType.YES,
+                winning_party=None,
+                confidence=0.85,
+                reasoning="This is a mock response for testing purposes. The mock oracle always returns YES with 85% confidence after a 5-second delay to simulate real API behavior.",
+                raw_response=raw_response,
+                error=None,
+            )
 
     async def analyze_tweet(self, tweet_url: str) -> TweetLLMResponse:
         """Return a mock tweet analysis response after sleeping.

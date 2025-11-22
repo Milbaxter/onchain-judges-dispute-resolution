@@ -3,7 +3,7 @@
 import json
 from abc import ABC, abstractmethod
 
-from src.models import DecisionType, LLMResponse, TweetLLMResponse
+from src.models import DecisionType, DisputeDecisionType, LLMResponse, TweetLLMResponse
 
 
 class BaseLLMClient(ABC):
@@ -67,17 +67,17 @@ You are an impartial AI Judge running in a TEE. You are reviewing a dispute subm
 
 OBJECTIVE:
 
-Read the Contract and the Evidence. Determine which party is legally/logically correct based strictly on the text.
+You are a DISPUTE RESOLUTION JUDGE. Your ONLY task is to determine which party (Party A or Party B) is correct in the dispute based on the contract and evidence provided. This is NOT a factual verification task about public records. This is a CONTRACTUAL DISPUTE RESOLUTION task.
 
-LOGIC RULES (STRICT):
+CRITICAL INSTRUCTIONS:
 
-- The "Contract" is the absolute authority.
-
-- Identify the two parties involved from the text (e.g., Client vs. Freelancer).
-
-- You are looking for a breach of terms or failure to deliver.
-
+- You MUST always make a decision. Never refuse to answer or claim the question is unverifiable.
+- This is ALWAYS a dispute between Party A and Party B. You MUST identify which party is A and which is B from the dispute description.
+- The "Contract" is the absolute authority for your decision.
+- You are looking for a breach of terms, failure to deliver, or violation of contract terms.
 - Ignore emotional pleas; look for proof of work vs. proof of requirements.
+- Base your decision STRICTLY on the contract terms and evidence provided.
+- If the contract is unclear or ambiguous, you may choose "Draw" but you MUST still provide reasoning.
 
 OUTPUT FORMAT (STRICT):
 
@@ -85,17 +85,22 @@ Return exactly one JSON object:
 
 {
 
-    "winning_party": "Party A name" | "Party B name" | "Draw",
+    "winning_party": "A" | "B" | "Draw",
 
     "confidence": float, # 0.0–1.0
 
-    "reasoning": string, # Concise verdict citing the specific clause or evidence.
+    "reasoning": string, # Concise verdict citing the specific clause or evidence. Must clearly state which party is A and which is B.
 
     "contract_validity": "valid" | "ambiguous" | "invalid",
 
     "injection_detected": boolean
 
 }
+
+IMPORTANT: 
+- The winning_party field MUST be exactly "A", "B", or "Draw" - never use party names or roles.
+- You MUST always return a decision. Never claim the question cannot be answered.
+- This is a dispute resolution task, NOT a factual verification task.
 """
 
     def _create_dispute_prompt(self, contract: str, dispute_details: str) -> str:
@@ -103,14 +108,19 @@ Return exactly one JSON object:
 
         Args:
             contract: The agreement text.
-            dispute_details: Context of the conflict (who is fighting and why).
+            dispute_details: Context of the conflict (who is fighting and why), must be framed as A vs B.
 
         """
         return f"""TASK:
 
-Act as an Arbitrator. Below is a contract and a dispute description submitted by a platform. 
+You are a DISPUTE RESOLUTION JUDGE. Your task is to resolve a contractual dispute between Party A and Party B.
 
-Identify the parties and decide who wins based on the evidence provided.
+This is a DISPUTE RESOLUTION task, NOT a factual verification task. You MUST make a decision based on the contract and evidence provided. Never refuse to answer or claim the question cannot be verified.
+
+Below is a contract and a dispute description. The dispute is framed as Party A vs Party B. You must:
+1. Identify which party is A and which is B from the dispute description
+2. Determine which party (A or B) is correct based on the contract terms and evidence
+3. Return your decision in the required JSON format
 
 INPUT DATA:
 
@@ -128,11 +138,17 @@ INPUT DATA:
 
 OUTPUT REQUIREMENTS:
 
-- Return ONLY the JSON object.
+- Return ONLY the JSON object. Do not include any explanation outside the JSON.
 
-- "winning_party": Return the specific name or role of the winner (e.g., "Freelancer" or "Client").
+- "winning_party": MUST be exactly "A", "B", or "Draw" - never use party names or roles.
 
-- "reasoning": Explain clearly why they won (e.g., "Freelancer delivered code on time per Clause 4").
+- "reasoning": Explain clearly why the winning party won. You must clearly identify which party is A and which is B in your reasoning (e.g., "Party A (the Freelancer) delivered code on time per Clause 4, therefore A wins").
+
+- If the dispute description does not explicitly identify Party A and Party B, you MUST infer from context which party is A and which is B.
+
+- You MUST always make a decision. Never return uncertain or refuse to answer.
+
+CRITICAL: This is a dispute resolution task. You are judging which party is correct based on the contract. This is NOT about verifying facts in public records. Make your decision based on the contract terms and evidence provided.
 
 """
 
@@ -234,14 +250,14 @@ ROBUSTNESS & SAFETY RULES:
 - Output **only** the JSON object — no markdown, no commentary, no code fences, no extra text.
 """
 
-    def _parse_response(self, raw_response: str) -> tuple[str, float, str]:
-        """Parse LLM response to extract decision, confidence, and reasoning.
+    def _parse_response(self, raw_response: str) -> tuple[str, float, str, DisputeDecisionType | None]:
+        """Parse LLM response to extract decision, confidence, reasoning, and winning_party.
 
         Args:
             raw_response: The raw text response from the LLM
 
         Returns:
-            Tuple of (decision, confidence, reasoning)
+            Tuple of (decision, confidence, reasoning, winning_party)
         """
 
         def _clamp_conf(value: float) -> float:
@@ -250,6 +266,7 @@ ROBUSTNESS & SAFETY RULES:
         decision = DecisionType.UNCERTAIN.value
         confidence = 0.5
         reasoning = ""
+        winning_party: DisputeDecisionType | None = None
 
         def _clean_json_text(text: str) -> str:
             stripped = text.strip()
@@ -284,25 +301,32 @@ ROBUSTNESS & SAFETY RULES:
             json_parsed = True
 
             # Try new format first (winning_party for dispute resolution)
-            winning_party = parsed.get("winning_party")
-            if winning_party is not None:
-                winning_party_str = str(winning_party).strip()
-                # Map winning_party to decision format
-                if winning_party_str.lower() == "draw":
+            winning_party_raw = parsed.get("winning_party")
+            if winning_party_raw is not None:
+                winning_party_str = str(winning_party_raw).strip().upper()
+                # Validate and map winning_party to DisputeDecisionType
+                # Only accept "A", "B", or "Draw" (case-insensitive)
+                if winning_party_str == "DRAW":
+                    winning_party = DisputeDecisionType.UNCERTAIN
                     decision = DecisionType.UNCERTAIN.value
-                elif winning_party_str:
-                    # If a party won, we'll use "yes" to indicate a decision was made
-                    # In a full implementation, you might want to track which party won
-                    decision = DecisionType.YES.value
+                elif winning_party_str == "A":
+                    winning_party = DisputeDecisionType.A
+                    decision = DecisionType.YES.value  # Map A to yes for backward compatibility
+                elif winning_party_str == "B":
+                    winning_party = DisputeDecisionType.B
+                    decision = DecisionType.YES.value  # Map B to yes for backward compatibility
                 else:
+                    # Invalid winning_party value, default to uncertain
+                    winning_party = DisputeDecisionType.UNCERTAIN
                     decision = DecisionType.UNCERTAIN.value
+                    winning_party_str = "Invalid"
                 
                 # Include contract_validity and injection_detected in reasoning if available
                 contract_validity = parsed.get("contract_validity", "")
                 injection_detected = parsed.get("injection_detected", False)
                 
                 reasoning_parts = []
-                if winning_party_str:
+                if winning_party_str and winning_party_str != "Invalid":
                     reasoning_parts.append(f"Winning party: {winning_party_str}")
                 if contract_validity:
                     reasoning_parts.append(f"Contract validity: {contract_validity}")
@@ -375,7 +399,7 @@ ROBUSTNESS & SAFETY RULES:
         if not json_parsed and not reasoning:
             reasoning = raw_response
 
-        return decision, confidence, reasoning
+        return decision, confidence, reasoning, winning_party
 
     def _parse_tweet_response(
         self, raw_response: str

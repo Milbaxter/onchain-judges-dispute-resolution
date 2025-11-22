@@ -584,10 +584,12 @@
         background: rgba(255, 255, 255, 0.005);
       }
 
+      .final-decision.a,
       .final-decision.yes {
         border-left: 4px solid #10b981;
       }
 
+      .final-decision.b,
       .final-decision.no {
         border-left: 4px solid #ef4444;
       }
@@ -619,6 +621,7 @@
         transition: width 0.8s ease;
       }
 
+      .final-decision.b .confidence-fill,
       .final-decision.no .confidence-fill {
         background: linear-gradient(90deg, #ef4444, #dc2626);
       }
@@ -714,10 +717,12 @@
         transition: border-left-color 0.2s ease;
       }
 
+      .provider-item.a,
       .provider-item.yes {
         border-left-color: #10b981;
       }
 
+      .provider-item.b,
       .provider-item.no {
         border-left-color: #ef4444;
       }
@@ -745,10 +750,12 @@
         margin-bottom: 8px;
       }
 
+      .provider-item.a .provider-decision,
       .provider-item.yes .provider-decision {
         color: #10b981;
       }
 
+      .provider-item.b .provider-decision,
       .provider-item.no .provider-decision {
         color: #ef4444;
       }
@@ -896,10 +903,12 @@
         background: rgba(255, 255, 255, 0.02);
       }
 
+      .recent-summary.a,
       .recent-summary.yes {
         border-left-color: #10b981;
       }
 
+      .recent-summary.b,
       .recent-summary.no {
         border-left-color: #ef4444;
       }
@@ -913,10 +922,12 @@
         flex-shrink: 0;
       }
 
+      .recent-summary.a .decision-icon,
       .recent-summary.yes .decision-icon {
         color: #10b981;
       }
 
+      .recent-summary.b .decision-icon,
       .recent-summary.no .decision-icon {
         color: #ef4444;
       }
@@ -1288,10 +1299,10 @@
 
           <div class="info-box" id="infoBox">
             <p id="infoText">
-              Fair conflict resolution powered by multiple independent AI judges. Submit the parties' contract and describe the situation—Claude, Gemini, OpenAI, Perplexity, and Grok will simultaneously review the evidence and decide the winner.
+              Fair conflict resolution powered by multiple independent AI judges. Submit the parties' contract and describe the situation framed as Party A vs Party B—Claude, Gemini, OpenAI, Perplexity, and Grok will simultaneously review the evidence and decide whether A or B wins.
             </p>
             <p style="margin-top: 12px" id="infoNote">
-              <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute.
+              <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #a1a1aa">
               You can also integrate via
@@ -1320,7 +1331,7 @@
                 id="queryInput"
                 minlength="10"
                 maxlength="256"
-                placeholder="Contract states payment upon 'satisfactory delivery'. Client rejected the work but used the code. Who wins?"
+                placeholder="CONTRACT: Payment upon 'satisfactory delivery'. DISPUTE: Party A (Freelancer) delivered code per contract. Party B (Client) rejected the work but used the code. Who wins: A or B?"
               ></textarea>
               <div class="char-counter"><span id="charCount">0</span> / 256</div>
             </div>

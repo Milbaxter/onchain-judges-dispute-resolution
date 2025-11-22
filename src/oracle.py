@@ -161,6 +161,7 @@ class Oracle:
                 provider=provider_name,
                 model="unknown",
                 decision=DecisionType.UNCERTAIN,
+                winning_party=None,
                 confidence=0.0,
                 reasoning=f"Error querying {provider_name}: {exc}",
                 raw_response="",
