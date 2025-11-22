@@ -1,12 +1,12 @@
 // Configuration.
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const NETWORK = import.meta.env.VITE_NETWORK || 'base-sepolia';
+const NETWORK = import.meta.env.VITE_NETWORK || 'polygon-amoy';
 
 // Helper: Get block explorer URL for transaction.
 function getExplorerUrl(network, txHash) {
   const explorers = {
-    'base-sepolia': `https://sepolia.basescan.org/tx/${txHash}`,
-    base: `https://basescan.org/tx/${txHash}`,
+    'polygon-amoy': `https://amoy.polygonscan.com/tx/${txHash}`,
+    polygon: `https://polygonscan.com/tx/${txHash}`,
   };
   return explorers[network] || null;
 }
@@ -75,7 +75,7 @@ connectButton.addEventListener('click', async () => {
     }
 
     // Dynamically import wallet libraries only when needed.
-    const [{ createWalletClient, custom }, { baseSepolia, base }, { wrapFetchWithPayment }] =
+    const [{ createWalletClient, custom }, { polygonAmoy, polygon }, { wrapFetchWithPayment }] =
       await Promise.all([import('viem'), import('viem/chains'), import('x402-fetch')]);
 
     // Request account access.
@@ -90,42 +90,117 @@ connectButton.addEventListener('click', async () => {
     currentAccount = accounts[0];
 
     // Select chain based on network configuration.
-    const chain = NETWORK === 'base' ? base : baseSepolia;
+    const chain = NETWORK === 'polygon' ? polygon : polygonAmoy;
 
     // Check if we need to switch networks.
-    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+    let currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
     const targetChainId = `0x${chain.id.toString(16)}`;
 
     if (currentChainId !== targetChainId) {
+      // Helper function to wait for chain change
+      const waitForChainChange = async () => {
+        // First check if it already changed
+        let checkChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (checkChainId === targetChainId) {
+          return checkChainId;
+        }
+
+        // If not, wait for the event
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(async () => {
+            window.ethereum.removeListener('chainChanged', handleChainChange);
+            // Final check before rejecting
+            try {
+              const finalChainId = await window.ethereum.request({ method: 'eth_chainId' });
+              if (finalChainId === targetChainId) {
+                resolve(finalChainId);
+              } else {
+                reject(new Error('Network switch timeout - please switch manually in your wallet'));
+              }
+            } catch (err) {
+              reject(new Error('Network switch timeout - please switch manually in your wallet'));
+            }
+          }, 10000); // 10 second timeout
+
+          const handleChainChange = async (newChainId) => {
+            clearTimeout(timeout);
+            window.ethereum.removeListener('chainChanged', handleChainChange);
+            // Verify the chain ID matches
+            try {
+              const verifiedChainId = await window.ethereum.request({ method: 'eth_chainId' });
+              if (verifiedChainId === targetChainId) {
+                resolve(verifiedChainId);
+              } else {
+                reject(new Error('Switched to wrong network'));
+              }
+            } catch (err) {
+              reject(new Error('Failed to verify network switch'));
+            }
+          };
+
+          window.ethereum.once('chainChanged', handleChainChange);
+        });
+      };
+
       try {
         // Try to switch to the target network.
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: targetChainId }],
         });
+        
+        // Wait for the network to actually switch
+        await waitForChainChange();
       } catch (switchError) {
         // This error code indicates that the chain has not been added to MetaMask.
-        if (switchError.code === 4902) {
+        if (switchError.code === 4902 || switchError.code === -32603) {
           try {
+            // Get RPC URLs - viem chains have rpcUrls.default.http as an array
+            let rpcUrls;
+            if (chain.rpcUrls && chain.rpcUrls.default && chain.rpcUrls.default.http) {
+              rpcUrls = Array.isArray(chain.rpcUrls.default.http)
+                ? chain.rpcUrls.default.http
+                : [chain.rpcUrls.default.http];
+            } else {
+              // Fallback for Polygon Amoy if viem structure is different
+              rpcUrls = ['https://rpc-amoy.polygon.technology'];
+            }
+            
+            // Get block explorer URLs
+            const blockExplorerUrls = chain.blockExplorers?.default?.url
+              ? [chain.blockExplorers.default.url]
+              : ['https://amoy.polygonscan.com'];
+            
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
                   chainId: targetChainId,
                   chainName: chain.name,
-                  nativeCurrency: chain.nativeCurrency,
-                  rpcUrls: chain.rpcUrls.default.http,
-                  blockExplorerUrls: chain.blockExplorers?.default
-                    ? [chain.blockExplorers.default.url]
-                    : [],
+                  nativeCurrency: chain.nativeCurrency || {
+                    name: 'MATIC',
+                    symbol: 'MATIC',
+                    decimals: 18,
+                  },
+                  rpcUrls: rpcUrls,
+                  blockExplorerUrls: blockExplorerUrls,
                 },
               ],
             });
+            
+            // Wait for the network to be added and switched
+            await waitForChainChange();
           } catch (addError) {
-            throw new Error(`Failed to add ${chain.name} network: ${addError.message}`);
+            if (addError.code === 4001) {
+              throw new Error('Network addition was rejected. Please approve adding the network in your wallet.');
+            }
+            throw new Error(`Failed to add ${chain.name} network: ${addError.message || addError.toString()}`);
           }
+        } else if (switchError.code === 4001) {
+          // User rejected the request
+          throw new Error('Network switch was rejected. Please approve the network switch in your wallet.');
         } else {
-          throw new Error(`Failed to switch to ${chain.name}: ${switchError.message}`);
+          throw new Error(`Failed to switch to ${chain.name}: ${switchError.message || switchError.toString()}`);
         }
       }
     }
@@ -192,6 +267,22 @@ queryForm.addEventListener('submit', async (e) => {
   if (!fetchWithPay) {
     showError('Please connect your wallet first');
     return;
+  }
+
+  // Verify wallet is on the correct network before submitting
+  if (window.ethereum && walletClient && walletClient.chain) {
+    try {
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const targetChainId = `0x${walletClient.chain.id.toString(16)}`;
+      
+      if (currentChainId !== targetChainId) {
+        showError(`Please switch to ${walletClient.chain.name} network in your wallet`);
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to verify network:', error);
+      // Continue anyway - the payment will fail if network is wrong
+    }
   }
 
   const query = queryInput.value.trim();
@@ -874,9 +965,25 @@ setInterval(() => {
 // Health check monitoring.
 async function checkServiceHealth() {
   try {
-    const response = await fetch(`${API_URL}/health`);
-    const healthData = await response.json();
+    // Add timeout controller for fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+    const response = await fetch(`${API_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const healthData = await response.json();
     const status = healthData.status || 'healthy';
 
     // Update UI based on health status.
@@ -887,6 +994,7 @@ async function checkServiceHealth() {
 
       const queuedJobs = healthData.queued_jobs || 0;
       healthMessage.textContent = `The service is currently experiencing high load (${queuedJobs} jobs queued). Submissions are temporarily disabled. Please try again in a few minutes.`;
+      healthBanner.style.display = 'block';
 
       // Disable submit button.
       if (submitButton && fetchWithPay) {
@@ -898,6 +1006,7 @@ async function checkServiceHealth() {
       healthTitle.textContent = 'Service Performance Degraded';
       healthMessage.textContent =
         'The service is experiencing some issues, but queries can still be submitted. Results may take longer than usual.';
+      healthBanner.style.display = 'block';
 
       // Re-enable submit button if wallet is connected.
       if (submitButton && fetchWithPay) {
@@ -907,6 +1016,7 @@ async function checkServiceHealth() {
       // Healthy - hide banner.
       isServiceHealthy = true;
       healthBanner.className = 'health-banner';
+      healthBanner.style.display = 'none'; // Hide when healthy
 
       // Re-enable submit button if wallet is connected.
       if (submitButton && fetchWithPay) {
@@ -915,12 +1025,25 @@ async function checkServiceHealth() {
     }
   } catch (error) {
     console.warn('Health check failed:', error);
+    
+    // Determine error type for better messaging
+    let errorMessage = 'Cannot connect to health monitoring. ';
+    if (error.name === 'AbortError') {
+      errorMessage += 'Request timed out. ';
+    } else if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      errorMessage += 'Network error - cannot reach server. ';
+    } else if (error.message) {
+      errorMessage += `Error: ${error.message}. `;
+    }
+    
+    errorMessage += `Please check that the server is running at ${API_URL}`;
+
     // Show a degraded state warning but still allow submissions.
     isServiceHealthy = true;
     healthBanner.className = 'health-banner degraded';
+    healthBanner.style.display = 'block'; // Show when there's an error
     healthTitle.textContent = 'Unable to Check Service Status';
-    healthMessage.textContent =
-      'Cannot connect to health monitoring. The service may be down or experiencing issues.';
+    healthMessage.textContent = errorMessage;
 
     // Re-enable submit button if wallet is connected.
     if (submitButton && fetchWithPay) {
@@ -944,7 +1067,7 @@ async function fetchPaymentInfo() {
     if (info.payment_address) {
       const paymentInfoEl = document.getElementById('paymentInfo');
       const shortAddress = `${info.payment_address.slice(0, 6)}...${info.payment_address.slice(-4)}`;
-      const networkDisplay = info.network === 'base' ? 'Base' : 'Base Sepolia';
+      const networkDisplay = info.network === 'polygon' ? 'Polygon' : 'Polygon Amoy';
 
       paymentInfoEl.innerHTML = `
         Payment Address:

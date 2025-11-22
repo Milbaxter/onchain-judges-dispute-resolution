@@ -41,14 +41,14 @@ class Settings(BaseSettings):
 
     # x402 Payment Configuration (optional if debug_payments=True).
     x402_payment_address: str | None = None
-    x402_network: str = "base-sepolia"
+    x402_network: str = "polygon-amoy"
     x402_price: str = "$0.1"
     x402_tweet_price: str = "$0.15"
 
     # CDP API Keys for x402 payment facilitator (required in production).
     cdp_api_key_id: str | None = None
     cdp_api_key_secret: str | None = None
-    facilitator_url: str = ""  # Custom facilitator URL (empty = use Coinbase default)
+    facilitator_url: str = ""  # Custom facilitator URL (empty = use default: https://facilitator.x402.rs for Polygon)
 
     # CORS configuration (comma-separated origins).
     cors_origins: str = "http://localhost:3000,http://localhost:5173"

@@ -51,7 +51,7 @@ def require_payment_async_settle(
     output_schema: Any | None = None,
     discoverable: bool | None = True,
     facilitator_config: FacilitatorConfig | None = None,
-    network: str = "base-sepolia",
+    network: str = "polygon-amoy",
     resource: str | None = None,
     paywall_config: PaywallConfig | None = None,
     custom_paywall_html: str | None = None,
@@ -79,7 +79,7 @@ def require_payment_async_settle(
         discoverable (bool, optional): Whether the route is discoverable. Defaults to True.
         facilitator_config (Optional[Dict[str, Any]], optional): Configuration for the payment facilitator.
             If not provided, defaults to the public x402.org facilitator.
-        network (str, optional): Ethereum network ID. Defaults to "base-sepolia" (Base Sepolia testnet).
+        network (str, optional): Ethereum network ID. Defaults to "polygon-amoy" (Polygon Amoy testnet).
         resource (Optional[str], optional): Resource URL. Defaults to None (uses request URL).
         paywall_config (Optional[PaywallConfig], optional): Configuration for paywall UI customization.
             Includes options like cdp_client_key, app_name, app_logo, session_token_endpoint.

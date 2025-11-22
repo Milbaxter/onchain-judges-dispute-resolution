@@ -316,24 +316,28 @@ if not settings.debug_payments:
             "Set DEBUG_PAYMENTS=true for testing without payments."
         )
 
-    # Create facilitator config for production (required for payment verification infrastructure).
+    # Create facilitator config (required for payment verification infrastructure).
     facilitator_config = None
-    if settings.environment == "production":
-        if settings.facilitator_url:
-            # Use custom facilitator URL.
-            from x402.facilitator import FacilitatorConfig
+    if settings.facilitator_url:
+        # Use custom facilitator URL.
+        from x402.facilitator import FacilitatorConfig
 
-            facilitator_config = FacilitatorConfig(url=settings.facilitator_url)
-            logger.info(f"✓ Using custom facilitator URL: {settings.facilitator_url}")
-        else:
-            # Use Coinbase CDP facilitator.
-            from cdp.x402 import create_facilitator_config
+        facilitator_config = FacilitatorConfig(url=settings.facilitator_url)
+        logger.info(f"✓ Using custom facilitator URL: {settings.facilitator_url}")
+    elif settings.environment == "production":
+        # Use Coinbase CDP facilitator for production.
+        from cdp.x402 import create_facilitator_config
 
-            facilitator_config = create_facilitator_config(
-                api_key_id=settings.cdp_api_key_id,
-                api_key_secret=settings.cdp_api_key_secret,
-            )
-            logger.info("✓ CDP facilitator configured for production payment verification")
+        facilitator_config = create_facilitator_config(
+            api_key_id=settings.cdp_api_key_id,
+            api_key_secret=settings.cdp_api_key_secret,
+        )
+        logger.info("✓ CDP facilitator configured for production payment verification")
+    else:
+        # For development with Polygon Amoy, use the default public facilitator
+        # The x402 library will use the default facilitator when facilitator_config is None
+        # For Polygon Amoy, this should be https://facilitator.x402.rs
+        logger.info("✓ Using default facilitator for development (Polygon Amoy)")
 
     # Settlement callbacks for async payment processing.
     async def on_settlement_success(request: Request, payment, payment_requirements):

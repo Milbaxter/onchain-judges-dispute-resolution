@@ -15,7 +15,7 @@ services:
       - FEATURE_TWEET_ANALYSIS=${FEATURE_TWEET_ANALYSIS:-false}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
       - X402_PAYMENT_ADDRESS=${X402_PAYMENT_ADDRESS:-}
-      - X402_NETWORK=${X402_NETWORK:-base-sepolia}
+      - X402_NETWORK=${X402_NETWORK:-polygon-amoy}
       - X402_PRICE=${X402_PRICE:-$0.1}
       - CDP_API_KEY_ID=${CDP_API_KEY_ID:-}
       - CDP_API_KEY_SECRET=${CDP_API_KEY_SECRET:-}
