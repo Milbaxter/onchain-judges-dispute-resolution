@@ -1,3 +1,5 @@
+![Polycourt Banner](static/polycourt.jpg)
+
 # Verisage.xyz
 
 [![Docker Reproducibility](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-docker.yml/badge.svg)](https://github.com/ptrus/verisage.xyz/actions/workflows/reproducibility-docker.yml)

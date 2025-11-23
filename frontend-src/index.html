@@ -174,6 +174,17 @@
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
 
+      .banner-image {
+        width: 80%;
+        max-width: 800px;
+        height: auto;
+        margin: 30px auto 0;
+        display: block;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(39, 39, 42, 0.6);
+      }
+
       /* Main content */
       main {
         padding: 50px 40px;
@@ -1551,6 +1562,11 @@
           font-size: 0.9em;
         }
 
+        .banner-image {
+          margin: 20px auto 0;
+          border-radius: 6px;
+        }
+
         main {
           padding: 24px 16px;
         }
@@ -1561,7 +1577,6 @@
     <div class="container">
       <header>
         <div class="header-top">
-          <a id="aboutLink" href="#" class="api-link">About</a>
           <a id="apiDocsLink" href="/docs" class="api-link" target="_blank">API Docs</a>
           <div class="header-wallet">
             <button id="connectButton" class="btn wallet-connect-btn">Connect Wallet</button>
@@ -1573,12 +1588,11 @@
           </div>
         </div>
         <div class="header-branding">
-          <a href="#" id="homeLink" style="display: flex; align-items: center; gap: 0; text-decoration: none; color: inherit;">
-            <img src="/logo.svg" alt="Polycourt Logo" class="header-logo" />
-            <h1>Polycourt</h1>
-          </a>
+          <img src="/logo.svg" alt="Polycourt Logo" class="header-logo" />
+          <h1>Polycourt</h1>
         </div>
         <p class="subtitle">Conflict resolution by the worlds best Large Language Models - delivered via API</p>
+        <img src="/polycourt.jpg" alt="Polycourt Banner" class="banner-image" />
       </header>
 
       <main>
@@ -1592,7 +1606,7 @@
               Fair conflict resolution powered by multiple independent AI judges.
             </p>
             <p style="margin-top: 12px" id="infoNote">
-              Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
+              <strong>Note:</strong> Please upload or paste the full agreement text and a clear description of the dispute. <strong>You must frame the dispute as Party A vs Party B</strong> - clearly identify which party is A and which is B in your description.
             </p>
             <p style="margin-top: 12px; font-size: 0.9em; color: #a1a1aa">
               You can also integrate via
